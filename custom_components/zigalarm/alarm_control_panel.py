@@ -36,6 +36,10 @@ from .const import (
     DEFAULT_LIGHT_BRIGHTNESS,
     DEFAULT_LIGHT_EFFECT,
     DEFAULT_LIGHT_RESTORE,
+        # cameras
+        OPT_CAMERAS,
+        OPT_CAMERA_SHOW_ONLY_TRIGGERED,
+        DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED,
     # keypad
     OPT_KEYPAD_ENABLED,
     OPT_KEYPAD_ENTITIES,
@@ -116,6 +120,10 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
             "alarm_light_brightness": opts.get(OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS),
             "alarm_light_effect": opts.get(OPT_LIGHT_EFFECT, DEFAULT_LIGHT_EFFECT),
             "alarm_light_restore": opts.get(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE),
+
+                # cameras
+                "camera_entities": opts.get(OPT_CAMERAS, []),
+                "camera_show_only_triggered": opts.get(OPT_CAMERA_SHOW_ONLY_TRIGGERED, DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED),
 
             # timing
             "exit_delay": opts.get(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY),

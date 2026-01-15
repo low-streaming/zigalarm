@@ -26,6 +26,10 @@ from .const import (
     DEFAULT_LIGHT_BRIGHTNESS,
     DEFAULT_LIGHT_EFFECT,
     DEFAULT_LIGHT_RESTORE,
+        # cameras
+        OPT_CAMERAS,
+        OPT_CAMERA_SHOW_ONLY_TRIGGERED,
+        DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED,
     # keypad options
     OPT_KEYPAD_ENABLED,
     OPT_KEYPAD_ENTITIES,
@@ -55,6 +59,9 @@ def _normalize_options(entry: ConfigEntry) -> dict:
     opts.setdefault(OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS)
     opts.setdefault(OPT_LIGHT_EFFECT, DEFAULT_LIGHT_EFFECT)
     opts.setdefault(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE)
+
+        opts.setdefault(OPT_CAMERAS, [])
+        opts.setdefault(OPT_CAMERA_SHOW_ONLY_TRIGGERED, DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED)
 
     opts.setdefault(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY)
     opts.setdefault(OPT_ENTRY_DELAY, DEFAULT_ENTRY_DELAY)
@@ -108,6 +115,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "alarm_light_brightness": OPT_LIGHT_BRIGHTNESS,
             "alarm_light_effect": OPT_LIGHT_EFFECT,
             "alarm_light_restore": OPT_LIGHT_RESTORE,
+                "camera_entities": OPT_CAMERAS,
+                "camera_show_only_triggered": OPT_CAMERA_SHOW_ONLY_TRIGGERED,
             "exit_delay": OPT_EXIT_DELAY,
             "entry_delay": OPT_ENTRY_DELAY,
             "trigger_time": OPT_TRIGGER_TIME,

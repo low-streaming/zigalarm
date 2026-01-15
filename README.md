@@ -1,257 +1,103 @@
-# ZigAlarm – Alarmanlage für Home Assistant mit Zigbee2MQTT & WLED
+# ZigAlarm – Home Assistant Alarm Panel for Zigbee2MQTT (with WLED)
 
-**ZigAlarm** verwandelt deine Zigbee2MQTT-Sensoren in eine vollwertige, einfach zu bedienende Alarmanlage für Home Assistant.
+ZigAlarm turns your Zigbee2MQTT sensors into a simple but solid Home Assistant alarm system:
 
-Prinzip:  
-👉 *Installieren → Card einfügen → Sensoren im Menü auswählen → fertig.*
+**Install → add card → pick entities in the menu → done.**
 
-Unterstützt u. a.:
-
-- Tür- und Fensterkontakte (Außenhaut)
-- Bewegungsmelder (Innenraum)
-- Rauch-, Wasser- und Sabotage-Sensoren (24/7)
-- Optionale Sirene (`switch.*`, `siren.*`, `light.*`)
-- **WLED / Licht-Effekte** bei Alarm (über Home-Assistant-Light-Entities)
-- Optional: Keypad / Remote über Zigbee2MQTT `action`-Events
-
----
-
-## ✨ Funktionen
-
-### 🧠 Alarm-Logik (Backend)
-- Eigenes `alarm_control_panel` in Home Assistant
-- Modi:
-  - `disarmed`
-  - `arming`
-  - `armed_home` (nur Außenhaut)
-  - `armed_away` (Außenhaut + Bewegung)
-  - `pending`
-  - `triggered`
-- Zonen:
-  - **Perimeter** – Türen & Fenster
-  - **Motion** – Bewegungsmelder
-  - **Always (24/7)** – Rauch, Wasser, Sabotage
-- Entry Delay, Exit Delay und Trigger-Zeit frei einstellbar
-- **Always-Sensoren lösen immer aus – auch im `disarmed`-Modus**
-
-### 🟢 Ready-to-Arm
-- Erkennt automatisch offene Türen/Fenster
-- Berechnet:
-  - `ready_to_arm_home`
-  - `ready_to_arm_away`
-- Blockiert das Scharfschalten, wenn noch etwas offen ist
-- Zeigt offene Sensoren direkt in der Card an
-
-### 🔊 Sirene (optional)
-- Wird bei `triggered` eingeschaltet
-- Wird bei `disarm` wieder ausgeschaltet
-
-### 💡 WLED / Alarm-Lichter (empfohlen)
-- Auswahl beliebiger `light.*`-Entities (z. B. WLED)
-- Konfigurierbar:
-  - Farbe (Hex, z. B. `#ff0000`)
-  - Helligkeit
-  - Effekt (optional)
-- Bei Alarm:
-  - Lichter werden gesetzt (z. B. rotes Blinken)
-- Bei `disarm`:
-  - Vorheriger Lichtzustand wird automatisch wiederhergestellt
-
-### 🔢 Keypad / Remote (optional)
-- Aktivierbar über die Card
-- Auswahl von `action`-Entities (z. B. `sensor.keypad_action`)
-- Frei definierbare Action-Strings:
-  - `arm_home`
-  - `arm_away`
-  - `disarm`
-- Optionaler **Master-PIN** für das Unscharfschalten
-
-### 📣 Events für Automationen
-ZigAlarm feuert Events im Home-Assistant-Bus:
-
-- `zigalarm_always_trigger`
-- `zigalarm_arm_blocked`
-- `zigalarm_disarm_denied`
-
-Damit lassen sich Push-Nachrichten, Logs oder weitere Aktionen umsetzen.
-
----
-
-## 🧩 Installation (HACS)
-
-1. Repository in HACS als **Custom Repository** hinzufügen  
-2. Integration **ZigAlarm** installieren  
-3. Home Assistant neu starten  
-4. **Einstellungen → Geräte & Dienste → Integration hinzufügen → ZigAlarm**
-
-### Card-Resource hinzufügen
-**Einstellungen → Dashboards → Ressourcen**
-
-- URL:  
-  ```
-  /hacsfiles/zigalarm/zigalarm-card.js
-  ```
-- Typ: *JavaScript Module*
-
-### Card einfügen
-```yaml
-type: custom:zigalarm-card
-alarm_entity: alarm_control_panel.zigalarm
-```
-
-Danach im Setup-Menü der Card die Sensoren auswählen und **Speichern** klicken.
-
----
-
-## Hinweise zu Zigbee2MQTT-Keypads
-
-Um die richtigen Action-Strings zu finden:
-
-1. Home Assistant → Entwicklerwerkzeuge → Zustände  
-2. Das `sensor.*_action` beobachten  
-3. Am Keypad/Remote drücken  
-4. Den angezeigten String in der Card eintragen
-
----
-
-## Projektstruktur
-
-- `custom_components/zigalarm/` – Backend-Integration  
-- `www/zigalarm-card.js` – Custom Card (Frontend)
-
----
-
-## Lizenz
-
-MIT License – © LOW – Streaming  
-Frei nutzbar mit Haftungsausschluss.
-
----
-
-# ZigAlarm – Alarm System for Home Assistant with Zigbee2MQTT & WLED
-
-**ZigAlarm** turns your Zigbee2MQTT sensors into a simple but powerful alarm system for Home Assistant.
-
-Concept:  
-👉 *Install → add the card → select your entities → done.*
-
-Works with:
-
-- Door and window contacts (perimeter)
-- Motion sensors (interior)
-- Smoke, water and tamper sensors (24/7)
+Works great with:
+- Door / window contacts (perimeter)
+- PIR motion sensors (motion)
+- Smoke / water / tamper sensors (always / 24/7)
 - Optional siren (`switch.*`, `siren.*`, `light.*`)
-- **WLED / light effects** on alarm (via Home Assistant lights)
-- Optional keypad / remote using Zigbee2MQTT `action` events
+- **WLED** (Variant A): pick your `light.*` entities and ZigAlarm will flash them on alarm
 
 ---
 
-## ✨ Features
+## Features
 
-### 🧠 Alarm Logic (Backend)
+### Alarm logic (backend)
 - Creates a real `alarm_control_panel` entity
-- States:
-  - `disarmed`
-  - `arming`
-  - `armed_home`
-  - `armed_away`
-  - `pending`
-  - `triggered`
+- Modes:
+  - `disarmed`, `arming`, `armed_home`, `armed_away`, `pending`, `triggered`
 - Zones:
-  - **Perimeter** – doors & windows
-  - **Motion** – PIR sensors
-  - **Always (24/7)** – smoke, water, tamper
-- Configurable entry delay, exit delay and trigger time
-- **Always sensors trigger even when disarmed**
+  - **Perimeter** (doors/windows)
+  - **Motion** (PIR)
+  - **Always (24/7)** (smoke/water/tamper) – triggers even when disarmed
+- Entry/Exit delay + trigger time configurable
 
-### 🟢 Ready-to-Arm
-- Detects open sensors automatically
-- Calculates:
+### Ready-to-arm
+- Calculates open sensors automatically
+- Blocks arming if something is open
+- Exposes attributes:
+  - `open_sensors`
   - `ready_to_arm_home`
   - `ready_to_arm_away`
-- Blocks arming if something is open
-- Shows open sensors directly in the card
 
-### 🔊 Siren (optional)
-- Turns on when `triggered`
-- Turns off when `disarmed`
+### Siren (optional)
+- Turns on at `triggered`
+- Turns off on `disarm` (and after `trigger_time`)
 
-### 💡 WLED / Alarm Lights (recommended)
-- Select any `light.*` entities (e.g. WLED)
+### WLED / Alarm lights (Variant A – recommended)
+- Select one or more `light.*` entities (WLED or any HA lights)
 - Configure:
-  - Color (hex)
-  - Brightness
-  - Effect (optional)
-- On alarm:
-  - Lights are set to alarm mode (e.g. red blinking)
-- On disarm:
-  - Previous light state is restored automatically
+  - color (hex)
+  - brightness (1..255)
+  - effect (optional)
+- On alarm: sets lights to your alarm look
+- On disarm: **restores previous light states** (recommended)
 
-### 🔢 Keypad / Remote (optional)
-- Enable in the card
-- Select one or more `action` entities
-- Freely define action strings:
-  - `arm_home`
-  - `arm_away`
-  - `disarm`
-- Optional **master PIN** for disarming
+### Keypad/Remote (optional)
+- Enable keypad in the card
+- Select one or more action entities (often `sensor.*_action` from Zigbee2MQTT)
+- Configure action strings (defaults):
+  - `arm_home`, `arm_away`, `disarm`
+- Optional master PIN for disarm (if the keypad sends a code attribute)
 
-### 📣 Events for Automations
-ZigAlarm fires Home Assistant bus events:
-
-- `zigalarm_always_trigger`
-- `zigalarm_arm_blocked`
+### Events (for automations)
+ZigAlarm fires events on the HA bus:
+- `zigalarm_always_trigger` (always/24-7 sensor triggered)
+- `zigalarm_arm_blocked` (arming blocked, includes open sensors list)
 - `zigalarm_disarm_denied`
-
-These can be used for notifications, logging and advanced automations.
+- `zigalarm_camera_alert` (wrong PIN / disarm denied)
 
 ---
 
-## 🧩 Installation (HACS)
+## Installation (HACS)
 
-1. Add this repository to HACS as a **Custom Repository**  
-2. Install **ZigAlarm**  
-3. Restart Home Assistant  
-4. **Settings → Devices & Services → Add Integration → ZigAlarm**
+1. Add this repository to HACS (as a custom repository)
+2. Install **ZigAlarm**
+3. Restart Home Assistant
+4. Add integration: **Settings → Devices & services → Add integration → ZigAlarm**
 
-### Add the Card Resource
+### Add the card resource
 **Settings → Dashboards → Resources**
+- URL: `/hacsfiles/zigalarm/zigalarm-card.js`
+- Type: JavaScript Module
 
-- URL:
-  ```
-  /hacsfiles/zigalarm/zigalarm-card.js
-  ```
-- Type: *JavaScript Module*
-
-### Add the Card
+### Add the card to your dashboard
 ```yaml
 type: custom:zigalarm-card
 alarm_entity: alarm_control_panel.zigalarm
 ```
 
-Open the card’s setup menu, select your entities and click **Save**.
+Now open the card’s **Setup** section, pick your entities and click **Speichern**.
 
 ---
 
 ## Notes for Zigbee2MQTT Keypads
-
 To find the correct action strings:
-
-1. Home Assistant → Developer Tools → States  
-2. Watch the `sensor.*_action` entity  
-3. Press buttons on the keypad/remote  
-4. Copy the shown string into the card fields
+- Home Assistant → Developer Tools → States
+- Watch the `sensor.*_action` while pressing keypad buttons
+- Copy the resulting string into the card fields
 
 ---
 
-## Repository Structure
+## Repository structure
 
-- `custom_components/zigalarm/` – backend integration  
-- `www/zigalarm-card.js` – custom Lovelace card
+- `custom_components/zigalarm/` → backend integration
+- `www/zigalarm-card.js` → custom Lovelace card
 
 ---
 
 ## License
-
-MIT License – © LOW – Streaming  
-Free to use with standard warranty disclaimer.
+MIT (recommended) – add a LICENSE file if you publish this.

@@ -73,6 +73,20 @@ set_config:
       required: false
       selector:
         boolean: {}
+camera_entities:
+  name: Cameras to show in the card (optional)
+  required: false
+  selector:
+    entity:
+      multiple: true
+      domain: camera
+
+camera_show_only_triggered:
+  name: Show cameras only when alarm is triggered
+  required: false
+  selector:
+    boolean: {}
+
 
     exit_delay:
       name: Exit delay (seconds)

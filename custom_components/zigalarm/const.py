@@ -15,6 +15,10 @@ OPT_LIGHT_BRIGHTNESS = "alarm_light_brightness"  # 1..255
 OPT_LIGHT_EFFECT = "alarm_light_effect"     # effect name string (optional)
 OPT_LIGHT_RESTORE = "alarm_light_restore"   # bool
 
+# Cameras (display in card / events)
+OPT_CAMERAS = "camera_entities"
+OPT_CAMERA_SHOW_ONLY_TRIGGERED = "camera_show_only_triggered"
+
 OPT_EXIT_DELAY = "exit_delay"
 OPT_ENTRY_DELAY = "entry_delay"
 OPT_TRIGGER_TIME = "trigger_time"
@@ -35,6 +39,8 @@ DEFAULT_LIGHT_COLOR = "#ff0000"
 DEFAULT_LIGHT_BRIGHTNESS = 255
 DEFAULT_LIGHT_EFFECT = ""
 DEFAULT_LIGHT_RESTORE = True
+
+DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED = True
 
 DEFAULT_ARM_HOME_ACTION = "arm_home"
 DEFAULT_ARM_AWAY_ACTION = "arm_away"
