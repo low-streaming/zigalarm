@@ -1,0 +1,153 @@
+set_config:
+  name: Set config from UI/Card
+  description: Store selected entities & settings into this ZigAlarm instance.
+  fields:
+    alarm_entity:
+      name: Alarm entity
+      required: true
+      selector:
+        entity:
+          domain: alarm_control_panel
+
+    perimeter_sensors:
+      name: Perimeter sensors (doors/windows)
+      required: false
+      selector:
+        entity:
+          multiple: true
+          domain: binary_sensor
+
+    motion_sensors:
+      name: Motion sensors (PIR)
+      required: false
+      selector:
+        entity:
+          multiple: true
+          domain: binary_sensor
+
+    always_sensors:
+      name: 24/7 sensors (smoke/water/tamper)
+      required: false
+      selector:
+        entity:
+          multiple: true
+          domain: binary_sensor
+
+    siren_entity:
+      name: Siren (switch/siren/light) optional
+      required: false
+      selector:
+        entity: {}
+
+    alarm_lights:
+      name: Alarm lights (WLED or any HA lights) optional
+      required: false
+      selector:
+        entity:
+          multiple: true
+          domain: light
+
+    alarm_light_color:
+      name: Alarm light color (hex, e.g. #ff0000)
+      required: false
+      selector:
+        text: {}
+
+    alarm_light_brightness:
+      name: Alarm light brightness (1..255)
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 255
+          mode: box
+
+    alarm_light_effect:
+      name: Alarm light effect (optional)
+      required: false
+      selector:
+        text: {}
+
+    alarm_light_restore:
+      name: Restore light states on disarm (recommended)
+      required: false
+      selector:
+        boolean: {}
+camera_entities:
+  name: Cameras to show in the card (optional)
+  required: false
+  selector:
+    entity:
+      multiple: true
+      domain: camera
+
+camera_show_only_triggered:
+  name: Show cameras only when alarm is triggered
+  required: false
+  selector:
+    boolean: {}
+
+
+    exit_delay:
+      name: Exit delay (seconds)
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 300
+          mode: box
+
+    entry_delay:
+      name: Entry delay (seconds)
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 300
+          mode: box
+
+    trigger_time:
+      name: Trigger time (seconds)
+      required: false
+      selector:
+        number:
+          min: 10
+          max: 600
+          mode: box
+
+    keypad_enabled:
+      name: Enable keypad/remote actions (optional)
+      required: false
+      selector:
+        boolean: {}
+
+    keypad_entities:
+      name: Keypad/Remote action entities (sensor/event)
+      required: false
+      selector:
+        entity:
+          multiple: true
+
+    master_pin:
+      name: Master PIN (optional)
+      required: false
+      selector:
+        text: {}
+
+    arm_home_action:
+      name: Action string for arm_home
+      required: false
+      selector:
+        text: {}
+
+    arm_away_action:
+      name: Action string for arm_away
+      required: false
+      selector:
+        text: {}
+
+    disarm_action:
+      name: Action string for disarm
+      required: false
+      selector:
+        text: {}
