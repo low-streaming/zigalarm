@@ -1,8 +1,0 @@
-{
-  "name": "ZigAlarm",
-  "content_in_root": false,
-  "render_readme": true,
-  "domains": [
-    "zigalarm"
-  ]
-}
