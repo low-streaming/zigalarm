@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add ZigAlarm",
+        "description": "Creates an alarm panel you can configure later from the card.",
+        "data": {
+          "name": "Name"
+        }
+      }
+    }
+  }
+}
