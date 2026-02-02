@@ -8,11 +8,15 @@ class ZigAlarmCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.alarm_entity) throw new Error("alarm_entity is required");
-    this._config = config;
+    // allow both "alarm_entity" and "entity" (some HA UIs use entity)
+    const alarmEntity = config.alarm_entity || config.entity;
+    if (!alarmEntity) throw new Error("alarm_entity is required");
+    this._config = { ...config, alarm_entity: alarmEntity };
   }
 
-  getCardSize() { return 6; }
+  getCardSize() {
+    return 8;
+  }
 
   _render() {
     this._root = this.attachShadow({ mode: "open" });
@@ -35,12 +39,21 @@ class ZigAlarmCard extends HTMLElement {
         .toggle { display:flex; gap:10px; align-items:center; }
         input[type="color"] { height: 34px; width: 54px; border: none; background: transparent; padding: 0; }
         .kbd { padding: 10px; border: 1px dashed var(--divider-color); border-radius: 12px; }
+        .errorbox { padding: 10px; border-radius: 12px; border: 1px solid var(--error-color); }
+        .camgrid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:10px; }
+        .camitem { border: 1px solid var(--divider-color); border-radius: 12px; overflow:hidden; }
+        .camhead { padding: 8px 10px; border-bottom:1px solid var(--divider-color); display:flex; justify-content:space-between; align-items:center; }
       </style>
 
       <ha-card>
         <div class="row" style="justify-content:space-between;">
           <div class="title">ZigAlarm</div>
-          <div class="pill" id="statePill"></div>
+          <div class="pill" id="statePill">-</div>
+        </div>
+
+        <div id="err" class="section errorbox" style="display:none;">
+          <div class="title" style="font-size:1em;">Fehler</div>
+          <div class="muted" id="errText"></div>
         </div>
 
         <div class="section">
@@ -94,6 +107,17 @@ class ZigAlarmCard extends HTMLElement {
             </label>
           </div>
 
+          <div class="kbd col">
+            <div class="title" style="font-size:1em;">Kameras (optional)</div>
+            <ha-entity-picker class="field" id="cameras" allow-custom-entity="false"
+              label="Kameras (camera.*)" multiple></ha-entity-picker>
+
+            <label class="toggle muted">
+              <input id="camsTriggeredOnly" type="checkbox" />
+              Kameras nur bei Alarm (triggered) anzeigen
+            </label>
+          </div>
+
           <div class="fieldrow">
             <ha-textfield class="field" id="exitDelay" type="number" label="Exit Delay (s)"></ha-textfield>
             <ha-textfield class="field" id="entryDelay" type="number" label="Entry Delay (s)"></ha-textfield>
@@ -127,6 +151,12 @@ class ZigAlarmCard extends HTMLElement {
             <div class="title" style="font-size:1em;">Offen gerade:</div>
             <ul class="openlist" id="openNow"></ul>
           </div>
+
+          <div id="camSection" class="section" style="display:none;">
+            <div class="title">Kameraansicht</div>
+            <div class="muted" id="camHint"></div>
+            <div class="camgrid" id="camGrid"></div>
+          </div>
         </div>
       </ha-card>
     `;
@@ -146,6 +176,18 @@ class ZigAlarmCard extends HTMLElement {
 
   _entityState(entityId) {
     return this._hass && this._hass.states ? this._hass.states[entityId] : null;
+  }
+
+  _showError(msg) {
+    const err = this._root.getElementById("err");
+    const errText = this._root.getElementById("errText");
+    err.style.display = "block";
+    errText.textContent = msg;
+  }
+
+  _hideError() {
+    const err = this._root.getElementById("err");
+    err.style.display = "none";
   }
 
   _setPickerValue(id, val) {
@@ -172,11 +214,22 @@ class ZigAlarmCard extends HTMLElement {
   _update() {
     const alarmId = this._config.alarm_entity;
     const alarm = this._entityState(alarmId);
-    if (!alarm) return;
+
+    if (!alarm) {
+      this._showError(`Entity nicht gefunden: ${alarmId}. Prüfe Entwicklerwerkzeuge → Zustände.`);
+      this._root.getElementById("statePill").textContent = "missing";
+      return;
+    }
+
+    if (alarm.state === "unavailable") {
+      this._showError(`Entity ist unavailable: ${alarmId}. Integration/Backend lädt nicht korrekt (Logs prüfen).`);
+    } else {
+      this._hideError();
+    }
 
     const $ = (id) => this._root.getElementById(id);
-
     const attrs = alarm.attributes || {};
+
     $("statePill").textContent = alarm.state;
 
     const last = attrs.last_trigger_entity;
@@ -211,6 +264,10 @@ class ZigAlarmCard extends HTMLElement {
     this._setField("lightEffect", attrs.alarm_light_effect ?? "");
     this._setCheckbox("lightRestore", attrs.alarm_light_restore ?? true);
 
+    // cameras
+    this._setPickerValue("cameras", attrs.camera_entities || []);
+    this._setCheckbox("camsTriggeredOnly", attrs.camera_show_only_triggered ?? true);
+
     // delays
     this._setField("exitDelay", attrs.exit_delay ?? 30);
     this._setField("entryDelay", attrs.entry_delay ?? 30);
@@ -226,9 +283,70 @@ class ZigAlarmCard extends HTMLElement {
     this._setField("armAwayAction", attrs.arm_away_action ?? "arm_away");
     this._setField("disarmAction", attrs.disarm_action ?? "disarm");
 
-    // show open sensors now (computed by backend, but we can also compute here)
+    // show open sensors now
     const ul = $("openNow");
     ul.innerHTML = openSensors.length ? openSensors.map((e) => `<li>${e}</li>`).join("") : "<li>keine</li>";
+
+    // camera display section
+    const cams = attrs.camera_entities || [];
+    const onlyTrig = !!(attrs.camera_show_only_triggered ?? true);
+    const isTrig = alarm.state === "triggered";
+
+    const showCams = cams.length > 0 && (!onlyTrig || isTrig);
+    $("camSection").style.display = showCams ? "block" : "none";
+
+    if (showCams) {
+      $("camHint").textContent = onlyTrig
+        ? "Wird nur bei Alarm angezeigt (triggered)."
+        : "Kameras werden immer angezeigt.";
+      this._renderCameras(cams);
+    }
+  }
+
+  _renderCameras(cameraEntities) {
+    const grid = this._root.getElementById("camGrid");
+    grid.innerHTML = "";
+
+    cameraEntities.forEach((eid) => {
+      const wrap = document.createElement("div");
+      wrap.className = "camitem";
+
+      const head = document.createElement("div");
+      head.className = "camhead";
+      head.innerHTML = `<div class="muted">${eid}</div>`;
+
+      const btn = document.createElement("button");
+      btn.className = "btn";
+      btn.textContent = "Mehr";
+      btn.addEventListener("click", () => {
+        // open more-info dialog
+        this._hass?.callService?.("browser_mod", "popup", {}); // harmless if not installed
+        this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId: eid }, bubbles: true, composed: true }));
+      });
+
+      head.appendChild(btn);
+
+      const body = document.createElement("div");
+      body.style.padding = "0";
+
+      // Use built-in HA card element if available
+      // Fallback: just show the entity name
+      const camCard = document.createElement("hui-picture-entity-card");
+      camCard.setConfig({
+        type: "picture-entity",
+        entity: eid,
+        show_name: false,
+        show_state: false,
+        camera_view: "live",
+      });
+      camCard.hass = this._hass;
+
+      body.appendChild(camCard);
+
+      wrap.appendChild(head);
+      wrap.appendChild(body);
+      grid.appendChild(wrap);
+    });
   }
 
   async _call(domain, service, data) {
@@ -251,6 +369,10 @@ class ZigAlarmCard extends HTMLElement {
     const alarm_light_brightness = Number($("lightBrightness").value || 255);
     const alarm_light_effect = String($("lightEffect").value || "");
     const alarm_light_restore = !!$("lightRestore").checked;
+
+    // cameras
+    const camera_entities = $("cameras").value || [];
+    const camera_show_only_triggered = !!$("camsTriggeredOnly").checked;
 
     const exit_delay = Number($("exitDelay").value || 30);
     const entry_delay = Number($("entryDelay").value || 30);
@@ -277,6 +399,9 @@ class ZigAlarmCard extends HTMLElement {
       alarm_light_effect,
       alarm_light_restore,
 
+      camera_entities,
+      camera_show_only_triggered,
+
       exit_delay,
       entry_delay,
       trigger_time,
@@ -297,5 +422,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "zigalarm-card",
   name: "ZigAlarm Card",
-  description: "Alarm panel + entity selection for Zigbee2MQTT sensors (includes WLED light triggering)"
+  description: "Alarm panel + entity selection for Zigbee2MQTT sensors (includes WLED + cameras)"
 });
