@@ -36,10 +36,10 @@ from .const import (
     DEFAULT_LIGHT_BRIGHTNESS,
     DEFAULT_LIGHT_EFFECT,
     DEFAULT_LIGHT_RESTORE,
-        # cameras
-        OPT_CAMERAS,
-        OPT_CAMERA_SHOW_ONLY_TRIGGERED,
-        DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED,
+    # cameras
+    OPT_CAMERAS,
+    OPT_CAMERA_SHOW_ONLY_TRIGGERED,
+    DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED,
     # keypad
     OPT_KEYPAD_ENABLED,
     OPT_KEYPAD_ENTITIES,
@@ -117,13 +117,17 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
             # lights (WLED)
             "alarm_lights": opts.get(OPT_LIGHTS, []),
             "alarm_light_color": opts.get(OPT_LIGHT_COLOR, DEFAULT_LIGHT_COLOR),
-            "alarm_light_brightness": opts.get(OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS),
+            "alarm_light_brightness": opts.get(
+                OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS
+            ),
             "alarm_light_effect": opts.get(OPT_LIGHT_EFFECT, DEFAULT_LIGHT_EFFECT),
             "alarm_light_restore": opts.get(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE),
 
-                # cameras
-                "camera_entities": opts.get(OPT_CAMERAS, []),
-                "camera_show_only_triggered": opts.get(OPT_CAMERA_SHOW_ONLY_TRIGGERED, DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED),
+            # cameras
+            "camera_entities": opts.get(OPT_CAMERAS, []),
+            "camera_show_only_triggered": opts.get(
+                OPT_CAMERA_SHOW_ONLY_TRIGGERED, DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED
+            ),
 
             # timing
             "exit_delay": opts.get(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY),
@@ -222,7 +226,10 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         if entity_id in always:
             return True
 
-        if self._state in (AlarmControlPanelState.ARMED_HOME, AlarmControlPanelState.ARMED_AWAY):
+        if self._state in (
+            AlarmControlPanelState.ARMED_HOME,
+            AlarmControlPanelState.ARMED_AWAY,
+        ):
             profile = PROFILES[self._state]
             if profile.perimeter and entity_id in set(opts.get(OPT_PERIMETER, []) or []):
                 return True
@@ -380,7 +387,11 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         if not self._ready_home:
             self.hass.bus.async_fire(
                 f"{DOMAIN}_arm_blocked",
-                {"alarm_entity": self.entity_id, "mode": "home", "open_sensors": self._open_sensors},
+                {
+                    "alarm_entity": self.entity_id,
+                    "mode": "home",
+                    "open_sensors": self._open_sensors,
+                },
             )
             self.async_write_ha_state()
             return
@@ -394,7 +405,11 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         if not self._ready_away:
             self.hass.bus.async_fire(
                 f"{DOMAIN}_arm_blocked",
-                {"alarm_entity": self.entity_id, "mode": "away", "open_sensors": self._open_sensors},
+                {
+                    "alarm_entity": self.entity_id,
+                    "mode": "away",
+                    "open_sensors": self._open_sensors,
+                },
             )
             self.async_write_ha_state()
             return
@@ -405,6 +420,19 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
     async def async_alarm_trigger(self, code: str | None = None) -> None:
         self._cancel_tasks()
         self._set_state(AlarmControlPanelState.TRIGGERED)
+
+        # fire camera event (used by card/automations)
+        opts = self.entry.options or {}
+        cams = list(opts.get(OPT_CAMERAS, []) or [])
+        if cams:
+            self.hass.bus.async_fire(
+                f"{DOMAIN}_camera_alert",
+                {
+                    "alarm_entity": self.entity_id,
+                    "trigger_entity": self._last_trigger_entity,
+                    "cameras": cams,
+                },
+            )
 
         await self._alarm_lights_on()
         await self._siren_on()
@@ -476,7 +504,6 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
             "color_temp": attrs.get("color_temp"),
             "hs_color": attrs.get("hs_color"),
             "xy_color": attrs.get("xy_color"),
-            # leave room for more later
         }
 
     async def _alarm_lights_on(self) -> None:
@@ -492,7 +519,9 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
                 self._snapshot_light(eid)
 
         rgb = self._parse_hex_color(str(opts.get(OPT_LIGHT_COLOR, DEFAULT_LIGHT_COLOR)))
-        brightness = int(opts.get(OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS) or DEFAULT_LIGHT_BRIGHTNESS)
+        brightness = int(
+            opts.get(OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS) or DEFAULT_LIGHT_BRIGHTNESS
+        )
         effect = str(opts.get(OPT_LIGHT_EFFECT, DEFAULT_LIGHT_EFFECT) or "").strip()
 
         data: dict[str, Any] = {"entity_id": lights}
@@ -516,7 +545,9 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         for eid, snap in self._light_snapshot.items():
             try:
                 if snap.get("state") == "off":
-                    await self.hass.services.async_call("light", "turn_off", {"entity_id": eid}, blocking=False)
+                    await self.hass.services.async_call(
+                        "light", "turn_off", {"entity_id": eid}, blocking=False
+                    )
                 else:
                     data: dict[str, Any] = {"entity_id": eid}
                     for k in ("brightness", "rgb_color", "effect", "color_temp", "hs_color", "xy_color"):
