@@ -26,10 +26,10 @@ from .const import (
     DEFAULT_LIGHT_BRIGHTNESS,
     DEFAULT_LIGHT_EFFECT,
     DEFAULT_LIGHT_RESTORE,
-        # cameras
-        OPT_CAMERAS,
-        OPT_CAMERA_SHOW_ONLY_TRIGGERED,
-        DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED,
+    # cameras
+    OPT_CAMERAS,
+    OPT_CAMERA_SHOW_ONLY_TRIGGERED,
+    DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED,
     # keypad options
     OPT_KEYPAD_ENABLED,
     OPT_KEYPAD_ENTITIES,
@@ -46,27 +46,34 @@ PLATFORMS = ["alarm_control_panel"]
 
 
 def _normalize_options(entry: ConfigEntry) -> dict:
+    """Ensure all option keys exist with defaults."""
     opts = dict(entry.options)
 
+    # sensors
     opts.setdefault(OPT_PERIMETER, [])
     opts.setdefault(OPT_MOTION, [])
     opts.setdefault(OPT_ALWAYS, [])
 
+    # siren
     opts.setdefault(OPT_SIREN, None)
 
+    # lights
     opts.setdefault(OPT_LIGHTS, [])
     opts.setdefault(OPT_LIGHT_COLOR, DEFAULT_LIGHT_COLOR)
     opts.setdefault(OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS)
     opts.setdefault(OPT_LIGHT_EFFECT, DEFAULT_LIGHT_EFFECT)
     opts.setdefault(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE)
 
-        opts.setdefault(OPT_CAMERAS, [])
-        opts.setdefault(OPT_CAMERA_SHOW_ONLY_TRIGGERED, DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED)
+    # cameras
+    opts.setdefault(OPT_CAMERAS, [])
+    opts.setdefault(OPT_CAMERA_SHOW_ONLY_TRIGGERED, DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED)
 
+    # timing
     opts.setdefault(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY)
     opts.setdefault(OPT_ENTRY_DELAY, DEFAULT_ENTRY_DELAY)
     opts.setdefault(OPT_TRIGGER_TIME, DEFAULT_TRIGGER_TIME)
 
+    # keypad
     opts.setdefault(OPT_KEYPAD_ENABLED, False)
     opts.setdefault(OPT_KEYPAD_ENTITIES, [])
     opts.setdefault(OPT_MASTER_PIN, "")
@@ -106,20 +113,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         new_opts = _normalize_options(config_entry)
 
         mapping = {
+            # sensors
             "perimeter_sensors": OPT_PERIMETER,
             "motion_sensors": OPT_MOTION,
             "always_sensors": OPT_ALWAYS,
+            # siren
             "siren_entity": OPT_SIREN,
+            # lights
             "alarm_lights": OPT_LIGHTS,
             "alarm_light_color": OPT_LIGHT_COLOR,
             "alarm_light_brightness": OPT_LIGHT_BRIGHTNESS,
             "alarm_light_effect": OPT_LIGHT_EFFECT,
             "alarm_light_restore": OPT_LIGHT_RESTORE,
-                "camera_entities": OPT_CAMERAS,
-                "camera_show_only_triggered": OPT_CAMERA_SHOW_ONLY_TRIGGERED,
+            # cameras
+            "camera_entities": OPT_CAMERAS,
+            "camera_show_only_triggered": OPT_CAMERA_SHOW_ONLY_TRIGGERED,
+            # timing
             "exit_delay": OPT_EXIT_DELAY,
             "entry_delay": OPT_ENTRY_DELAY,
             "trigger_time": OPT_TRIGGER_TIME,
+            # keypad
             "keypad_enabled": OPT_KEYPAD_ENABLED,
             "keypad_entities": OPT_KEYPAD_ENTITIES,
             "master_pin": OPT_MASTER_PIN,
