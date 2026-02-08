@@ -22,11 +22,12 @@ from .const import (
     OPT_MOTION,
     OPT_PERIMETER,
     OPT_SIREN,
+    OPT_SIREN_ENTITIES,
     OPT_TRIGGER_TIME,
     DEFAULT_ENTRY_DELAY,
     DEFAULT_EXIT_DELAY,
     DEFAULT_TRIGGER_TIME,
-    # lights/WLED
+    # lights
     OPT_LIGHTS,
     OPT_LIGHT_COLOR,
     OPT_LIGHT_BRIGHTNESS,
@@ -40,7 +41,7 @@ from .const import (
     OPT_CAMERAS,
     OPT_CAMERA_SHOW_ONLY_TRIGGERED,
     DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED,
-    # keypad
+    # keypad (optional)
     OPT_KEYPAD_ENABLED,
     OPT_KEYPAD_ENTITIES,
     OPT_ARM_HOME_ACTION,
@@ -48,6 +49,19 @@ from .const import (
     OPT_DISARM_ACTION,
     OPT_MASTER_PIN,
 )
+
+
+def _uniq_clean(items: Any) -> list[str]:
+    out: list[str] = []
+    for x in (items or []):
+        s = str(x).strip()
+        if s and s not in out:
+            out.append(s)
+    return out
+
+
+def _domain(entity_id: str) -> str:
+    return entity_id.split(".", 1)[0] if entity_id and "." in entity_id else ""
 
 
 @dataclass
@@ -79,7 +93,7 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         self.hass = hass
         self.entry = entry
         self._attr_name = name
-        self._attr_unique_id = entry.entry_id  # maps entity <-> entry
+        self._attr_unique_id = entry.entry_id
 
         self._state: AlarmControlPanelState = AlarmControlPanelState.DISARMED
 
@@ -89,64 +103,72 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         self._trigger_task: Optional[asyncio.Task] = None
 
         self._last_trigger_entity: Optional[str] = None
-
-        # Ready-to-arm
         self._open_sensors: list[str] = []
         self._ready_home: bool = True
         self._ready_away: bool = True
 
-        # Light restore cache (entity_id -> snapshot dict)
+        # light restore cache (only for light.*)
         self._light_snapshot: dict[str, dict[str, Any]] = {}
 
+    # ---------------------- NO PIN / NO CODE ----------------------
+
     @property
-    def state(self) -> str:
+    def code_format(self) -> str | None:
+        return None
+
+    @property
+    def code_arm_required(self) -> bool:
+        return False
+
+    @property
+    def code_disarm_required(self) -> bool:
+        return False
+
+    # ---------------------- HA Entity Basics ----------------------
+
+    @property
+    def state(self) -> AlarmControlPanelState:
         return self._state
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         opts = self.entry.options or {}
         return {
-            # sensors
-            "perimeter_sensors": opts.get(OPT_PERIMETER, []),
-            "motion_sensors": opts.get(OPT_MOTION, []),
-            "always_sensors": opts.get(OPT_ALWAYS, []),
+            "config_entry_id": self.entry.entry_id,
 
-            # siren
-            "siren_entity": opts.get(OPT_SIREN),
+            "perimeter_sensors": _uniq_clean(opts.get(OPT_PERIMETER, [])),
+            "motion_sensors": _uniq_clean(opts.get(OPT_MOTION, [])),
+            "always_sensors": _uniq_clean(opts.get(OPT_ALWAYS, [])),
 
-            # lights (WLED)
-            "alarm_lights": opts.get(OPT_LIGHTS, []),
+            "siren_entity": (opts.get(OPT_SIREN) or None),
+            "siren_entities": _uniq_clean(opts.get(OPT_SIREN_ENTITIES, [])),
+
+            "alarm_lights": _uniq_clean(opts.get(OPT_LIGHTS, [])),
             "alarm_light_color": opts.get(OPT_LIGHT_COLOR, DEFAULT_LIGHT_COLOR),
-            "alarm_light_brightness": opts.get(
-                OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS
-            ),
+            "alarm_light_brightness": int(opts.get(OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS)),
             "alarm_light_effect": opts.get(OPT_LIGHT_EFFECT, DEFAULT_LIGHT_EFFECT),
-            "alarm_light_restore": opts.get(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE),
+            "alarm_light_restore": bool(opts.get(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE)),
 
-            # cameras
-            "camera_entities": opts.get(OPT_CAMERAS, []),
-            "camera_show_only_triggered": opts.get(
-                OPT_CAMERA_SHOW_ONLY_TRIGGERED, DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED
+            "camera_entities": _uniq_clean(opts.get(OPT_CAMERAS, [])),
+            "camera_show_only_triggered": bool(
+                opts.get(OPT_CAMERA_SHOW_ONLY_TRIGGERED, DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED)
             ),
 
-            # timing
-            "exit_delay": opts.get(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY),
-            "entry_delay": opts.get(OPT_ENTRY_DELAY, DEFAULT_ENTRY_DELAY),
-            "trigger_time": opts.get(OPT_TRIGGER_TIME, DEFAULT_TRIGGER_TIME),
+            "exit_delay": int(opts.get(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY)),
+            "entry_delay": int(opts.get(OPT_ENTRY_DELAY, DEFAULT_ENTRY_DELAY)),
+            "trigger_time": int(opts.get(OPT_TRIGGER_TIME, DEFAULT_TRIGGER_TIME)),
 
-            # status
             "last_trigger_entity": self._last_trigger_entity,
             "open_sensors": self._open_sensors,
             "ready_to_arm_home": self._ready_home,
             "ready_to_arm_away": self._ready_away,
 
-            # keypad (optional)
-            "keypad_enabled": opts.get(OPT_KEYPAD_ENABLED, False),
-            "keypad_entities": opts.get(OPT_KEYPAD_ENTITIES, []),
-            "master_pin": opts.get(OPT_MASTER_PIN, ""),
-            "arm_home_action": opts.get(OPT_ARM_HOME_ACTION, "arm_home"),
-            "arm_away_action": opts.get(OPT_ARM_AWAY_ACTION, "arm_away"),
-            "disarm_action": opts.get(OPT_DISARM_ACTION, "disarm"),
+            "keypad_enabled": bool(opts.get(OPT_KEYPAD_ENABLED, False)),
+            "keypad_entities": _uniq_clean(opts.get(OPT_KEYPAD_ENTITIES, [])),
+            "master_pin": str(opts.get(OPT_MASTER_PIN, "") or ""),
+            "arm_home_action": str(opts.get(OPT_ARM_HOME_ACTION, "arm_home") or "arm_home"),
+            "arm_away_action": str(opts.get(OPT_ARM_AWAY_ACTION, "arm_away") or "arm_away"),
+            "disarm_action": str(opts.get(OPT_DISARM_ACTION, "disarm") or "disarm"),
         }
 
     async def async_added_to_hass(self) -> None:
@@ -157,7 +179,8 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
             except Exception:
                 self._state = AlarmControlPanelState.DISARMED
 
-        # register mapping entity_id -> entry_id for service set_config
+        self.hass.data.setdefault(DOMAIN, {})
+        self.hass.data[DOMAIN].setdefault("entity_to_entry", {})
         self.hass.data[DOMAIN]["entity_to_entry"][self.entity_id] = self.entry.entry_id
 
         self._install_listeners()
@@ -169,7 +192,7 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
             self._unsub()
             self._unsub = None
 
-        for t in [self._arming_task, self._pending_task, self._trigger_task]:
+        for t in (self._arming_task, self._pending_task, self._trigger_task):
             if t and not t.done():
                 t.cancel()
 
@@ -183,9 +206,8 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         opts = self.entry.options or {}
         entities = set(self._configured_entities_all())
 
-        # keypad optional entities
         if opts.get(OPT_KEYPAD_ENABLED, False):
-            entities |= set(opts.get(OPT_KEYPAD_ENTITIES, []) or [])
+            entities |= set(_uniq_clean(opts.get(OPT_KEYPAD_ENTITIES, [])))
 
         if not entities:
             return
@@ -197,13 +219,13 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
     def _configured_entities_all(self) -> Iterable[str]:
         opts = self.entry.options or {}
         for key in (OPT_PERIMETER, OPT_MOTION, OPT_ALWAYS):
-            for e in (opts.get(key, []) or []):
+            for e in _uniq_clean(opts.get(key, [])):
                 yield e
 
     def _compute_ready(self) -> None:
         opts = self.entry.options or {}
-        perimeter = list(opts.get(OPT_PERIMETER, []) or [])
-        motion = list(opts.get(OPT_MOTION, []) or [])
+        perimeter = _uniq_clean(opts.get(OPT_PERIMETER, []))
+        motion = _uniq_clean(opts.get(OPT_MOTION, []))
 
         def is_on(eid: str) -> bool:
             st = self.hass.states.get(eid)
@@ -214,27 +236,22 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
 
         open_perimeter = [eid for eid in perimeter if is_on(eid)]
         self._ready_home = len(open_perimeter) == 0
-
-        # away checks perimeter + motion
         self._ready_away = len(self._open_sensors) == 0
 
     def _is_relevant_trigger(self, entity_id: str) -> bool:
         opts = self.entry.options or {}
-        always = set(opts.get(OPT_ALWAYS, []) or [])
+        always = set(_uniq_clean(opts.get(OPT_ALWAYS, [])))
 
-        # always triggers are handled earlier; keep this for completeness
         if entity_id in always:
             return True
 
-        if self._state in (
-            AlarmControlPanelState.ARMED_HOME,
-            AlarmControlPanelState.ARMED_AWAY,
-        ):
+        if self._state in (AlarmControlPanelState.ARMED_HOME, AlarmControlPanelState.ARMED_AWAY):
             profile = PROFILES[self._state]
-            if profile.perimeter and entity_id in set(opts.get(OPT_PERIMETER, []) or []):
+            if profile.perimeter and entity_id in set(_uniq_clean(opts.get(OPT_PERIMETER, []))):
                 return True
-            if profile.motion and entity_id in set(opts.get(OPT_MOTION, []) or []):
+            if profile.motion and entity_id in set(_uniq_clean(opts.get(OPT_MOTION, []))):
                 return True
+
         return False
 
     def _cancel_tasks(self) -> None:
@@ -260,101 +277,42 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         if not entity_id:
             return
 
-        opts = self.entry.options or {}
-
-        # recompute ready-to-arm on any relevant change (including keypad)
         self._compute_ready()
         self.async_write_ha_state()
-
-        # Keypad handling (optional)
-        if opts.get(OPT_KEYPAD_ENABLED, False):
-            keypads = set(opts.get(OPT_KEYPAD_ENTITIES, []) or [])
-            if entity_id in keypads:
-                self._handle_keypad_event(event)
-                return
 
         # Only trigger on "on"
         if new_state.state != "on":
             return
 
-        # Always sensors: trigger even if disarmed/arming
-        always = set(opts.get(OPT_ALWAYS, []) or [])
+        opts = self.entry.options or {}
+
+        always = set(_uniq_clean(opts.get(OPT_ALWAYS, [])))
         if entity_id in always:
             self._last_trigger_entity = entity_id
-            self.hass.bus.async_fire(
-                f"{DOMAIN}_always_trigger",
-                {"alarm_entity": self.entity_id, "trigger_entity": entity_id},
-            )
             self.hass.async_create_task(self.async_alarm_trigger())
             return
 
         if self._state == AlarmControlPanelState.TRIGGERED:
             return
 
-        # For perimeter/motion: only when armed and relevant
         if not self._is_relevant_trigger(entity_id):
             return
 
         self._last_trigger_entity = entity_id
 
         entry_delay = int(opts.get(OPT_ENTRY_DELAY, DEFAULT_ENTRY_DELAY))
-
         if self._state == AlarmControlPanelState.PENDING:
             return
 
         self._set_state(AlarmControlPanelState.PENDING)
         self._start_pending(entry_delay)
 
-    @callback
-    def _handle_keypad_event(self, event: Event) -> None:
-        new_state = event.data.get("new_state")
-        if not new_state:
-            return
-
-        action = new_state.state
-        attrs = new_state.attributes or {}
-
-        opts = self.entry.options or {}
-        arm_home_action = str((opts.get(OPT_ARM_HOME_ACTION) or "arm_home")).strip()
-        arm_away_action = str((opts.get(OPT_ARM_AWAY_ACTION) or "arm_away")).strip()
-        disarm_action = str((opts.get(OPT_DISARM_ACTION) or "disarm")).strip()
-        master_pin = str((opts.get(OPT_MASTER_PIN) or "")).strip()
-
-        code = (
-            attrs.get("code")
-            or attrs.get("pin")
-            or attrs.get("action_code")
-            or attrs.get("entered_code")
-            or ""
-        )
-        code = str(code).strip()
-
-        async def do():
-            if action == arm_home_action:
-                await self.async_alarm_arm_home()
-            elif action == arm_away_action:
-                await self.async_alarm_arm_away()
-            elif action == disarm_action:
-                if master_pin and code != master_pin:
-                    self.hass.bus.async_fire(
-                        f"{DOMAIN}_disarm_denied",
-                        {
-                            "alarm_entity": self.entity_id,
-                            "source": event.data.get("entity_id"),
-                            "action": action,
-                        },
-                    )
-                    return
-                await self.async_alarm_disarm(code if code else None)
-
-        self.hass.async_create_task(do())
-
     # ---------------------- Timers ----------------------
 
     def _start_pending(self, delay_s: int) -> None:
         async def _pending():
             try:
-                await asyncio.sleep(max(0, delay_s))
+                await asyncio.sleep(max(0, int(delay_s)))
                 await self.async_alarm_trigger()
             except asyncio.CancelledError:
                 return
@@ -366,36 +324,28 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
 
         async def _arming():
             try:
-                await asyncio.sleep(max(0, delay_s))
+                await asyncio.sleep(max(0, int(delay_s)))
                 self._set_state(target)
             except asyncio.CancelledError:
                 return
 
         self._arming_task = asyncio.create_task(_arming())
 
-    # ---------------------- Services / Actions ----------------------
+    # ---------------------- Actions ----------------------
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         self._cancel_tasks()
         self._set_state(AlarmControlPanelState.DISARMED)
-        await self._siren_off()
-        await self._alarm_lights_restore()
+
+        # ✅ Wunsch: bei Unscharf alles aus
+        await self._sirens_off()
+        await self._alarm_lights_restore_or_off()
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         self._cancel_tasks()
         self._compute_ready()
         if not self._ready_home:
-            self.hass.bus.async_fire(
-                f"{DOMAIN}_arm_blocked",
-                {
-                    "alarm_entity": self.entity_id,
-                    "mode": "home",
-                    "open_sensors": self._open_sensors,
-                },
-            )
-            self.async_write_ha_state()
             return
-
         exit_delay = int((self.entry.options or {}).get(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY))
         self._start_arming(AlarmControlPanelState.ARMED_HOME, exit_delay)
 
@@ -403,17 +353,7 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         self._cancel_tasks()
         self._compute_ready()
         if not self._ready_away:
-            self.hass.bus.async_fire(
-                f"{DOMAIN}_arm_blocked",
-                {
-                    "alarm_entity": self.entity_id,
-                    "mode": "away",
-                    "open_sensors": self._open_sensors,
-                },
-            )
-            self.async_write_ha_state()
             return
-
         exit_delay = int((self.entry.options or {}).get(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY))
         self._start_arming(AlarmControlPanelState.ARMED_AWAY, exit_delay)
 
@@ -421,61 +361,50 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         self._cancel_tasks()
         self._set_state(AlarmControlPanelState.TRIGGERED)
 
-        # fire camera event (used by card/automations)
-        opts = self.entry.options or {}
-        cams = list(opts.get(OPT_CAMERAS, []) or [])
-        if cams:
-            self.hass.bus.async_fire(
-                f"{DOMAIN}_camera_alert",
-                {
-                    "alarm_entity": self.entity_id,
-                    "trigger_entity": self._last_trigger_entity,
-                    "cameras": cams,
-                },
-            )
-
         await self._alarm_lights_on()
-        await self._siren_on()
+        await self._sirens_on()
 
         trigger_time = int((self.entry.options or {}).get(OPT_TRIGGER_TIME, DEFAULT_TRIGGER_TIME))
 
         async def _auto_stop_outputs():
             try:
-                await asyncio.sleep(max(1, trigger_time))
-                # keep state triggered, but stop outputs
-                await self._siren_off()
-                # keep lights in alarm state; restore when disarmed (recommended)
+                await asyncio.sleep(max(1, int(trigger_time)))
+                await self._sirens_off()
             except asyncio.CancelledError:
                 return
 
         self._trigger_task = asyncio.create_task(_auto_stop_outputs())
 
-    # ---------------------- Outputs: Siren ----------------------
+    # ---------------------- Outputs: Sirens ----------------------
 
-    async def _siren_on(self) -> None:
-        siren = (self.entry.options or {}).get(OPT_SIREN)
-        if not siren:
-            return
-        domain = siren.split(".", 1)[0]
-        if domain not in ("switch", "siren", "light"):
-            domain = "switch"
-        await self.hass.services.async_call(domain, "turn_on", {"entity_id": siren}, blocking=False)
+    def _get_sirens(self) -> list[str]:
+        opts = self.entry.options or {}
+        sirens = _uniq_clean(opts.get(OPT_SIREN_ENTITIES, []))
+        legacy = str(opts.get(OPT_SIREN) or "").strip()
+        if legacy and legacy not in sirens:
+            sirens.append(legacy)
+        return sirens
 
-    async def _siren_off(self) -> None:
-        siren = (self.entry.options or {}).get(OPT_SIREN)
-        if not siren:
-            return
-        domain = siren.split(".", 1)[0]
-        if domain not in ("switch", "siren", "light"):
-            domain = "switch"
-        await self.hass.services.async_call(domain, "turn_off", {"entity_id": siren}, blocking=False)
+    async def _sirens_on(self) -> None:
+        for ent in self._get_sirens():
+            dom = _domain(ent)
+            if dom not in ("switch", "siren", "light"):
+                dom = "switch"
+            await self.hass.services.async_call(dom, "turn_on", {"entity_id": ent}, blocking=False)
 
-    # ---------------------- Outputs: Alarm Lights (WLED) ----------------------
+    async def _sirens_off(self) -> None:
+        for ent in self._get_sirens():
+            dom = _domain(ent)
+            if dom not in ("switch", "siren", "light"):
+                dom = "switch"
+            await self.hass.services.async_call(dom, "turn_off", {"entity_id": ent}, blocking=False)
+
+    # ---------------------- Outputs: Alarm Lights ----------------------
 
     def _parse_hex_color(self, hex_color: str) -> tuple[int, int, int] | None:
         if not hex_color:
             return None
-        s = hex_color.strip()
+        s = str(hex_color).strip()
         if not s.startswith("#"):
             return None
         s = s[1:]
@@ -508,55 +437,71 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
 
     async def _alarm_lights_on(self) -> None:
         opts = self.entry.options or {}
-        lights = list(opts.get(OPT_LIGHTS, []) or [])
-        if not lights:
+        entities = _uniq_clean(opts.get(OPT_LIGHTS, []))
+        if not entities:
             return
 
-        # snapshot
-        if opts.get(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE):
+        # Snapshot only for light.*
+        if bool(opts.get(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE)):
             self._light_snapshot = {}
-            for eid in lights:
-                self._snapshot_light(eid)
+            for eid in entities:
+                if _domain(eid) == "light":
+                    self._snapshot_light(eid)
 
-        rgb = self._parse_hex_color(str(opts.get(OPT_LIGHT_COLOR, DEFAULT_LIGHT_COLOR)))
-        brightness = int(
-            opts.get(OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS) or DEFAULT_LIGHT_BRIGHTNESS
-        )
-        effect = str(opts.get(OPT_LIGHT_EFFECT, DEFAULT_LIGHT_EFFECT) or "").strip()
+        light_entities = [e for e in entities if _domain(e) == "light"]
+        other_entities = [e for e in entities if _domain(e) in ("switch", "siren")]
 
-        data: dict[str, Any] = {"entity_id": lights}
-        if rgb:
-            data["rgb_color"] = list(rgb)
-        if 1 <= brightness <= 255:
-            data["brightness"] = brightness
-        if effect:
-            data["effect"] = effect
+        # turn on non-light (z.B. Kamera-Spotlight als switch.*)
+        for eid in other_entities:
+            dom = _domain(eid)
+            await self.hass.services.async_call(dom, "turn_on", {"entity_id": eid}, blocking=False)
 
-        await self.hass.services.async_call("light", "turn_on", data, blocking=False)
+        # turn on lights with settings
+        if light_entities:
+            rgb = self._parse_hex_color(str(opts.get(OPT_LIGHT_COLOR, DEFAULT_LIGHT_COLOR)))
+            brightness = int(opts.get(OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS) or DEFAULT_LIGHT_BRIGHTNESS)
+            effect = str(opts.get(OPT_LIGHT_EFFECT, DEFAULT_LIGHT_EFFECT) or "").strip()
 
-    async def _alarm_lights_restore(self) -> None:
+            data: dict[str, Any] = {"entity_id": light_entities}
+            if rgb:
+                data["rgb_color"] = list(rgb)
+            if 1 <= brightness <= 255:
+                data["brightness"] = brightness
+            if effect:
+                data["effect"] = effect
+
+            await self.hass.services.async_call("light", "turn_on", data, blocking=False)
+
+    async def _alarm_lights_restore_or_off(self) -> None:
         opts = self.entry.options or {}
-        if not opts.get(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE):
-            return
-        if not self._light_snapshot:
+        entities = _uniq_clean(opts.get(OPT_LIGHTS, []))
+        if not entities:
             return
 
-        # restore each light
-        for eid, snap in self._light_snapshot.items():
-            try:
-                if snap.get("state") == "off":
-                    await self.hass.services.async_call(
-                        "light", "turn_off", {"entity_id": eid}, blocking=False
-                    )
-                else:
-                    data: dict[str, Any] = {"entity_id": eid}
-                    for k in ("brightness", "rgb_color", "effect", "color_temp", "hs_color", "xy_color"):
-                        v = snap.get(k)
-                        if v is not None:
-                            data[k] = v
-                    await self.hass.services.async_call("light", "turn_on", data, blocking=False)
-            except Exception:
-                # best effort restore
-                continue
+        # non-light immer aus
+        for eid in entities:
+            dom = _domain(eid)
+            if dom in ("switch", "siren"):
+                await self.hass.services.async_call(dom, "turn_off", {"entity_id": eid}, blocking=False)
 
-        self._light_snapshot = {}
+        # lights restore or off
+        if bool(opts.get(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE)) and self._light_snapshot:
+            for eid, snap in self._light_snapshot.items():
+                try:
+                    if snap.get("state") == "off":
+                        await self.hass.services.async_call("light", "turn_off", {"entity_id": eid}, blocking=False)
+                    else:
+                        data: dict[str, Any] = {"entity_id": eid}
+                        for k in ("brightness", "rgb_color", "effect", "color_temp", "hs_color", "xy_color"):
+                            v = snap.get(k)
+                            if v is not None:
+                                data[k] = v
+                        await self.hass.services.async_call("light", "turn_on", data, blocking=False)
+                except Exception:
+                    continue
+            self._light_snapshot = {}
+        else:
+            # restore aus -> lights einfach aus
+            light_entities = [e for e in entities if _domain(e) == "light"]
+            if light_entities:
+                await self.hass.services.async_call("light", "turn_off", {"entity_id": light_entities}, blocking=False)

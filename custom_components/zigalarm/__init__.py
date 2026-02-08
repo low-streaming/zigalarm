@@ -1,157 +1,147 @@
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers import entity_registry as er
+from homeassistant.components import panel_custom
+from homeassistant.components.http import StaticPathConfig
 
 from .const import (
     DOMAIN,
-    OPT_ALWAYS,
-    OPT_ENTRY_DELAY,
-    OPT_EXIT_DELAY,
-    OPT_MOTION,
+    PLATFORMS,
     OPT_PERIMETER,
+    OPT_MOTION,
+    OPT_ALWAYS,
     OPT_SIREN,
-    OPT_TRIGGER_TIME,
-    DEFAULT_ENTRY_DELAY,
-    DEFAULT_EXIT_DELAY,
-    DEFAULT_TRIGGER_TIME,
-    # WLED/light options
+    OPT_SIREN_ENTITIES,
     OPT_LIGHTS,
     OPT_LIGHT_COLOR,
     OPT_LIGHT_BRIGHTNESS,
     OPT_LIGHT_EFFECT,
     OPT_LIGHT_RESTORE,
+    OPT_CAMERAS,
+    OPT_CAMERA_SHOW_ONLY_TRIGGERED,
+    OPT_EXIT_DELAY,
+    OPT_ENTRY_DELAY,
+    OPT_TRIGGER_TIME,
+    DEFAULT_EXIT_DELAY,
+    DEFAULT_ENTRY_DELAY,
+    DEFAULT_TRIGGER_TIME,
     DEFAULT_LIGHT_COLOR,
     DEFAULT_LIGHT_BRIGHTNESS,
     DEFAULT_LIGHT_EFFECT,
     DEFAULT_LIGHT_RESTORE,
-    # cameras
-    OPT_CAMERAS,
-    OPT_CAMERA_SHOW_ONLY_TRIGGERED,
     DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED,
-    # keypad options
-    OPT_KEYPAD_ENABLED,
-    OPT_KEYPAD_ENTITIES,
-    OPT_ARM_HOME_ACTION,
-    OPT_ARM_AWAY_ACTION,
-    OPT_DISARM_ACTION,
-    OPT_MASTER_PIN,
-    DEFAULT_ARM_HOME_ACTION,
-    DEFAULT_ARM_AWAY_ACTION,
-    DEFAULT_DISARM_ACTION,
 )
 
-PLATFORMS = ["alarm_control_panel"]
+PANEL_URL_PATH = "zigalarm-panel"
+STATIC_URL = "/zigalarm_static"
+STATIC_DIR = Path(__file__).resolve().parent / "frontend"
 
 
-def _normalize_options(entry: ConfigEntry) -> dict:
-    """Ensure all option keys exist with defaults."""
-    opts = dict(entry.options)
-
-    # sensors
-    opts.setdefault(OPT_PERIMETER, [])
-    opts.setdefault(OPT_MOTION, [])
-    opts.setdefault(OPT_ALWAYS, [])
-
-    # siren
-    opts.setdefault(OPT_SIREN, None)
-
-    # lights
-    opts.setdefault(OPT_LIGHTS, [])
-    opts.setdefault(OPT_LIGHT_COLOR, DEFAULT_LIGHT_COLOR)
-    opts.setdefault(OPT_LIGHT_BRIGHTNESS, DEFAULT_LIGHT_BRIGHTNESS)
-    opts.setdefault(OPT_LIGHT_EFFECT, DEFAULT_LIGHT_EFFECT)
-    opts.setdefault(OPT_LIGHT_RESTORE, DEFAULT_LIGHT_RESTORE)
-
-    # cameras
-    opts.setdefault(OPT_CAMERAS, [])
-    opts.setdefault(OPT_CAMERA_SHOW_ONLY_TRIGGERED, DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED)
-
-    # timing
-    opts.setdefault(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY)
-    opts.setdefault(OPT_ENTRY_DELAY, DEFAULT_ENTRY_DELAY)
-    opts.setdefault(OPT_TRIGGER_TIME, DEFAULT_TRIGGER_TIME)
-
-    # keypad
-    opts.setdefault(OPT_KEYPAD_ENABLED, False)
-    opts.setdefault(OPT_KEYPAD_ENTITIES, [])
-    opts.setdefault(OPT_MASTER_PIN, "")
-    opts.setdefault(OPT_ARM_HOME_ACTION, DEFAULT_ARM_HOME_ACTION)
-    opts.setdefault(OPT_ARM_AWAY_ACTION, DEFAULT_ARM_AWAY_ACTION)
-    opts.setdefault(OPT_DISARM_ACTION, DEFAULT_DISARM_ACTION)
-
-    return opts
+def _uniq_list(value: Any) -> list[str]:
+    out: list[str] = []
+    for x in (value or []):
+        s = str(x).strip()
+        if s and s not in out:
+            out.append(s)
+    return out
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN].setdefault("entity_to_entry", {})  # alarm_entity_id -> entry_id
+    hass.data[DOMAIN].setdefault("entity_to_entry", {})
 
-    # ensure defaults exist
-    hass.config_entries.async_update_entry(entry, options=_normalize_options(entry))
+    # ✅ Static files MUST be awaited
+    if STATIC_DIR.exists():
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(STATIC_URL, str(STATIC_DIR), cache_headers=False)]
+        )
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # ✅ Panel register MUST be awaited
+    #    (API unterscheidet sich je nach HA-Version)
+    try:
+        await panel_custom.async_register_panel(
+            hass,
+            frontend_url_path=PANEL_URL_PATH,
+            webcomponent_name="zigalarm-panel",
+            module_url=f"{STATIC_URL}/zigalarm-panel.js",
+            sidebar_title="ZigAlarm Panel",
+            sidebar_icon="mdi:shield-home",
+            require_admin=False,
+        )
+    except TypeError:
+        await panel_custom.async_register_panel(
+            hass,
+            url_path=PANEL_URL_PATH,
+            webcomponent_name="zigalarm-panel",
+            module_url=f"{STATIC_URL}/zigalarm-panel.js",
+            sidebar_title="ZigAlarm Panel",
+            sidebar_icon="mdi:shield-home",
+            require_admin=False,
+        )
 
     async def handle_set_config(call: ServiceCall) -> None:
-        alarm_entity = call.data["alarm_entity"]
+        data = dict(call.data or {})
 
-        entry_id = hass.data[DOMAIN]["entity_to_entry"].get(alarm_entity)
-        if entry_id is None:
-            # fallback (rare): try to locate via entity registry
-            ent_reg = er.async_get(hass)
-            ent = ent_reg.async_get(alarm_entity)
-            if ent and ent.unique_id:
-                entry_id = ent.unique_id
-            else:
-                raise ValueError(f"Unknown ZigAlarm entity: {alarm_entity}")
+        entry_id = (data.get("config_entry_id") or "").strip()
 
-        config_entry = hass.config_entries.async_get_entry(entry_id)
-        if config_entry is None:
-            raise ValueError("Config entry not found")
+        if not entry_id:
+            alarm_entity = (data.get("alarm_entity") or "").strip()
+            if alarm_entity:
+                entry_id = hass.data.get(DOMAIN, {}).get("entity_to_entry", {}).get(alarm_entity, "")
 
-        new_opts = _normalize_options(config_entry)
+        if not entry_id:
+            raise ValueError("config_entry_id fehlt (Entity prüfen)")
 
-        mapping = {
-            # sensors
-            "perimeter_sensors": OPT_PERIMETER,
-            "motion_sensors": OPT_MOTION,
-            "always_sensors": OPT_ALWAYS,
-            # siren
-            "siren_entity": OPT_SIREN,
-            # lights
-            "alarm_lights": OPT_LIGHTS,
-            "alarm_light_color": OPT_LIGHT_COLOR,
-            "alarm_light_brightness": OPT_LIGHT_BRIGHTNESS,
-            "alarm_light_effect": OPT_LIGHT_EFFECT,
-            "alarm_light_restore": OPT_LIGHT_RESTORE,
-            # cameras
-            "camera_entities": OPT_CAMERAS,
-            "camera_show_only_triggered": OPT_CAMERA_SHOW_ONLY_TRIGGERED,
-            # timing
-            "exit_delay": OPT_EXIT_DELAY,
-            "entry_delay": OPT_ENTRY_DELAY,
-            "trigger_time": OPT_TRIGGER_TIME,
-            # keypad
-            "keypad_enabled": OPT_KEYPAD_ENABLED,
-            "keypad_entities": OPT_KEYPAD_ENTITIES,
-            "master_pin": OPT_MASTER_PIN,
-            "arm_home_action": OPT_ARM_HOME_ACTION,
-            "arm_away_action": OPT_ARM_AWAY_ACTION,
-            "disarm_action": OPT_DISARM_ACTION,
-        }
+        entry: ConfigEntry | None = hass.config_entries.async_get_entry(entry_id)
+        if not entry:
+            raise ValueError(f"ConfigEntry nicht gefunden: {entry_id}")
 
-        for key, opt_key in mapping.items():
-            if key in call.data:
-                new_opts[opt_key] = call.data[key]
+        options = dict(entry.options or {})
 
-        hass.config_entries.async_update_entry(config_entry, options=new_opts)
+        options[OPT_PERIMETER] = _uniq_list(data.get("perimeter_sensors"))
+        options[OPT_MOTION] = _uniq_list(data.get("motion_sensors"))
+        options[OPT_ALWAYS] = _uniq_list(data.get("always_sensors"))
+
+        options[OPT_SIREN_ENTITIES] = _uniq_list(data.get("siren_entities"))
+        options[OPT_SIREN] = (str(data.get("siren_entity") or "").strip() or None)
+
+        options[OPT_LIGHTS] = _uniq_list(data.get("alarm_lights"))
+        options[OPT_LIGHT_COLOR] = str(data.get("alarm_light_color") or DEFAULT_LIGHT_COLOR)
+        options[OPT_LIGHT_BRIGHTNESS] = int(data.get("alarm_light_brightness") or DEFAULT_LIGHT_BRIGHTNESS)
+        options[OPT_LIGHT_EFFECT] = str(data.get("alarm_light_effect") or DEFAULT_LIGHT_EFFECT)
+        options[OPT_LIGHT_RESTORE] = bool(
+            data.get("alarm_light_restore")
+            if data.get("alarm_light_restore") is not None
+            else DEFAULT_LIGHT_RESTORE
+        )
+
+        options[OPT_CAMERAS] = _uniq_list(data.get("camera_entities"))
+        options[OPT_CAMERA_SHOW_ONLY_TRIGGERED] = bool(
+            data.get("camera_show_only_triggered")
+            if data.get("camera_show_only_triggered") is not None
+            else DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED
+        )
+
+        options[OPT_EXIT_DELAY] = int(data.get("exit_delay") or DEFAULT_EXIT_DELAY)
+        options[OPT_ENTRY_DELAY] = int(data.get("entry_delay") or DEFAULT_ENTRY_DELAY)
+        options[OPT_TRIGGER_TIME] = int(data.get("trigger_time") or DEFAULT_TRIGGER_TIME)
+
+        hass.config_entries.async_update_entry(entry, options=options)
+        await hass.config_entries.async_reload(entry.entry_id)
 
     hass.services.async_register(DOMAIN, "set_config", handle_set_config)
 
     return True
 
 
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    return True
+
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

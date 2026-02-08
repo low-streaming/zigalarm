@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 
-from .const import DOMAIN, CONF_NAME
+from .const import DOMAIN
 
 
 class ZigAlarmConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -15,7 +16,7 @@ class ZigAlarmConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(
                 title=user_input[CONF_NAME],
                 data=user_input,
-                options={},  # defaults will be applied in __init__.py
+                options={},  # configured via panel/card (service)
             )
 
         schema = vol.Schema({vol.Required(CONF_NAME, default="ZigAlarm"): str})
@@ -32,5 +33,5 @@ class ZigAlarmOptionsFlow(config_entries.OptionsFlow):
         self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
-        # Minimal placeholder. Main configuration is done from the custom card.
+        # Everything is configured in the custom UI / service
         return self.async_show_form(step_id="init", data_schema=vol.Schema({}))

@@ -1,10 +1,11 @@
 {
   "domain": "zigalarm",
-  "name": "ZigAlarm (Zigbee2MQTT Alarm Panel)",
-  "version": "0.3.0",
-  "documentation": "https://github.com/your/repo",
-  "requirements": [],
-  "codeowners": [],
+  "name": "ZigAlarm",
+  "codeowners": ["@low-streaming"],
   "config_flow": true,
-  "iot_class": "local_push"
+  "documentation": "https://github.com/low-streaming/zigalarm",
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "requirements": [],
+  "version": "0.0.1"
 }

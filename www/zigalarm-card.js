@@ -1,426 +1,391 @@
-/* ZigAlarm Card - minimal, no build step */
+/*
+  ZigAlarm Lovelace Card (Dashboard / Overview)
+  - shows alarm state + actions
+  - optional camera popup on trigger (no Browser Mod required)
+  Config:
+    type: custom:zigalarm-card
+    alarm_entity: alarm_control_panel.zigalarm   # or "entity"
+    show_setup: false                           # default false
+    show_cameras: popup|inline|none             # default popup
+    use_panel_cameras: true                     # default true (reads alarm entity attribute "camera_entities")
+    cameras: []                                 # optional when use_panel_cameras: false
+    camera_card: picture-entity|picture-glance  # default picture-entity
+    popup_on_trigger: true                      # default true
+    popup_only_when_triggered: true             # default true
+    popup_auto_close_on_disarm: true            # default true
+    popup_title: Alarm-Kameras                  # default
+*/
+
 class ZigAlarmCard extends HTMLElement {
-  set hass(hass) {
-    this._hass = hass;
-    if (!this._config) return;
-    if (!this._root) this._render();
+  constructor() {
+    super();
+    this._hass = null;
+    this._config = {};
+    this._root = this.attachShadow({ mode: "open" });
+
+    this._lastAlarmState = null;
+    this._popup = null;          // native <dialog>
+    this._popupOpenedFor = null; // alarm state that opened it ("triggered")
+    this._helpers = null;
+
+    this._renderSkeleton();
+  }
+
+  // ---- HA card API ----
+  setConfig(config) {
+    if (!config) throw new Error("Config fehlt");
+
+    const alarmEntity = (config.alarm_entity || config.entity || "").trim();
+    if (!alarmEntity) {
+      throw new Error("alarm_entity fehlt");
+    }
+
+    this._config = {
+      // defaults
+      alarm_entity: alarmEntity,
+      name: config.name || "ZigAlarm",
+      show_setup: config.show_setup ?? false,
+      show_cameras: config.show_cameras || "popup", // popup | inline | none
+      use_panel_cameras: config.use_panel_cameras ?? true,
+      cameras: Array.isArray(config.cameras) ? config.cameras : [],
+      camera_card: config.camera_card || "picture-entity",
+      popup_on_trigger: config.popup_on_trigger ?? true,
+      popup_only_when_triggered: config.popup_only_when_triggered ?? true,
+      popup_auto_close_on_disarm: config.popup_auto_close_on_disarm ?? true,
+      popup_title: config.popup_title || "Alarm-Kameras",
+    };
+
+    this._config.alarm_entity = alarmEntity;
+
     this._update();
   }
 
-  setConfig(config) {
-    // allow both "alarm_entity" and "entity" (some HA UIs use entity)
-    const alarmEntity = config.alarm_entity || config.entity;
-    if (!alarmEntity) throw new Error("alarm_entity is required");
-    this._config = { ...config, alarm_entity: alarmEntity };
+  set hass(hass) {
+    this._hass = hass;
+
+    // detect state transitions for popup
+    const st = this._st();
+    const newState = st ? String(st.state || "") : null;
+
+    if (newState && this._lastAlarmState !== newState) {
+      this._handleAlarmTransition(this._lastAlarmState, newState, st);
+      this._lastAlarmState = newState;
+    } else if (!this._lastAlarmState && newState) {
+      this._lastAlarmState = newState;
+    }
+
+    this._update();
+    this._updatePopupHass();
   }
 
   getCardSize() {
-    return 8;
+    return 3;
   }
 
-  _render() {
-    this._root = this.attachShadow({ mode: "open" });
+  // ---- internals ----
+  _st() {
+    if (!this._hass) return null;
+    return this._hass.states[this._config.alarm_entity] || null;
+  }
+
+  _renderSkeleton() {
     this._root.innerHTML = `
       <style>
-        .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-        .col { display:flex; flex-direction:column; gap:10px; }
-        .btn { padding:10px 12px; border-radius:10px; border:1px solid var(--divider-color); background: var(--card-background-color); cursor:pointer; }
-        .btn.primary { background: var(--primary-color); color: var(--text-primary-color); border:none; }
-        .btn.danger { background: var(--error-color); color: var(--text-primary-color); border:none; }
-        .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-        .muted { opacity:0.75; font-size: 0.9em; }
-        ha-card { padding: 14px; }
-        .section { border-top:1px solid var(--divider-color); padding-top:12px; margin-top:12px; }
-        .title { font-size: 1.1em; font-weight: 600; }
-        .pill { padding:2px 8px; border-radius:999px; border:1px solid var(--divider-color); }
-        .openlist { margin: 0; padding-left: 18px; }
-        .fieldrow { display:flex; gap:10px; flex-wrap:wrap; }
-        .field { min-width: 180px; flex: 1; }
-        .toggle { display:flex; gap:10px; align-items:center; }
-        input[type="color"] { height: 34px; width: 54px; border: none; background: transparent; padding: 0; }
-        .kbd { padding: 10px; border: 1px dashed var(--divider-color); border-radius: 12px; }
-        .errorbox { padding: 10px; border-radius: 12px; border: 1px solid var(--error-color); }
-        .camgrid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:10px; }
-        .camitem { border: 1px solid var(--divider-color); border-radius: 12px; overflow:hidden; }
-        .camhead { padding: 8px 10px; border-bottom:1px solid var(--divider-color); display:flex; justify-content:space-between; align-items:center; }
+        ha-card { padding: 16px; }
+        .header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+        .title { font-size: 18px; font-weight: 600; }
+        .pill { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.15); }
+        .row { display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; }
+        button {
+          border: 0; border-radius: 10px; padding: 8px 12px; cursor: pointer;
+          background: rgba(0,0,0,0.06);
+        }
+        button.primary { background: var(--primary-color); color: var(--text-primary-color, #fff); }
+        button.danger { background: #d9534f; color: #fff; }
+        .muted { opacity: .75; font-size: 12px; margin-top: 8px; }
+        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+        .box { border: 1px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 10px; }
+        .box h4 { margin: 0 0 6px 0; font-size: 13px; opacity: .9; }
+        .kv { display:flex; justify-content:space-between; gap:12px; font-size: 13px; }
+        .list { margin: 6px 0 0 0; padding-left: 18px; font-size: 12px; opacity: .85; }
+        .cams-inline { margin-top: 12px; }
+        .warn { margin-top: 12px; padding: 10px; border-radius: 12px; background: rgba(255,193,7,.15); border: 1px solid rgba(255,193,7,.35); }
+        .setup { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.12); }
+        .setup small { display:block; opacity:.8; margin-bottom: 8px; }
+        /* native dialog popup */
+        dialog.zigalarm-popup {
+          border: 0;
+          border-radius: 14px;
+          padding: 0;
+          max-width: min(900px, 92vw);
+          width: 92vw;
+        }
+        dialog::backdrop { background: rgba(0,0,0,.55); }
+        .dlg-head {
+          display:flex; align-items:center; justify-content:space-between; gap:12px;
+          padding: 12px 14px; border-bottom: 1px solid rgba(0,0,0,0.12);
+          background: var(--card-background-color, #fff);
+        }
+        .dlg-title { font-weight: 600; }
+        .dlg-body { padding: 12px 14px; background: var(--card-background-color, #fff); }
+        .dlg-close { background: rgba(0,0,0,.06); }
+        .dlg-cards { display: grid; gap: 10px; }
       </style>
 
       <ha-card>
-        <div class="row" style="justify-content:space-between;">
-          <div class="title">ZigAlarm</div>
-          <div class="pill" id="statePill">-</div>
-        </div>
-
-        <div id="err" class="section errorbox" style="display:none;">
-          <div class="title" style="font-size:1em;">Fehler</div>
-          <div class="muted" id="errText"></div>
-        </div>
-
-        <div class="section">
-          <div class="row">
-            <button class="btn" id="armHome">Arm Home</button>
-            <button class="btn primary" id="armAway">Arm Away</button>
-            <button class="btn" id="disarm">Disarm</button>
-            <button class="btn danger" id="trigger">Trigger</button>
-          </div>
-          <div class="muted" id="hintLine"></div>
-          <div class="muted" id="lastTrigger"></div>
-        </div>
-
-        <div class="section col">
-          <div class="row" style="justify-content:space-between;">
-            <div class="title">Setup</div>
-            <button class="btn" id="save">Speichern</button>
-          </div>
-
-          <div class="muted">Sensoren auswählen → Speichern. ZigAlarm übernimmt den Rest.</div>
-
-          <ha-entity-picker class="field" id="perimeter" allow-custom-entity="false"
-            label="Außenhaut (Tür/Fenster)" multiple></ha-entity-picker>
-
-          <ha-entity-picker class="field" id="motion" allow-custom-entity="false"
-            label="Bewegung (PIR)" multiple></ha-entity-picker>
-
-          <ha-entity-picker class="field" id="always" allow-custom-entity="false"
-            label="24/7 Sensoren (Rauch/Wasser/Tamper)" multiple></ha-entity-picker>
-
-          <ha-entity-picker class="field" id="siren" allow-custom-entity="false"
-            label="Sirene (switch/siren/light) optional"></ha-entity-picker>
-
-          <div class="kbd col">
-            <div class="title" style="font-size:1em;">WLED / Alarm-Lichter (optional)</div>
-            <ha-entity-picker class="field" id="alarmLights" allow-custom-entity="false"
-              label="Alarm-Lichter (light.*)" multiple></ha-entity-picker>
-
-            <div class="fieldrow">
-              <div class="field">
-                <div class="muted">Farbe</div>
-                <input id="lightColor" type="color" value="#ff0000" />
-              </div>
-              <ha-textfield class="field" id="lightBrightness" type="number" label="Helligkeit (1..255)"></ha-textfield>
-              <ha-textfield class="field" id="lightEffect" label="Effect (optional)"></ha-textfield>
-            </div>
-
-            <label class="toggle muted">
-              <input id="lightRestore" type="checkbox" />
-              Lichtzustände bei Disarm wiederherstellen
-            </label>
-          </div>
-
-          <div class="kbd col">
-            <div class="title" style="font-size:1em;">Kameras (optional)</div>
-            <ha-entity-picker class="field" id="cameras" allow-custom-entity="false"
-              label="Kameras (camera.*)" multiple></ha-entity-picker>
-
-            <label class="toggle muted">
-              <input id="camsTriggeredOnly" type="checkbox" />
-              Kameras nur bei Alarm (triggered) anzeigen
-            </label>
-          </div>
-
-          <div class="fieldrow">
-            <ha-textfield class="field" id="exitDelay" type="number" label="Exit Delay (s)"></ha-textfield>
-            <ha-textfield class="field" id="entryDelay" type="number" label="Entry Delay (s)"></ha-textfield>
-            <ha-textfield class="field" id="triggerTime" type="number" label="Trigger Time (s)"></ha-textfield>
-          </div>
-
-          <div class="kbd col">
-            <div class="row" style="justify-content:space-between;">
-              <div class="title" style="font-size:1em;">Keypad / Remote (optional)</div>
-            </div>
-            <label class="toggle muted">
-              <input id="keypadEnabled" type="checkbox" />
-              Keypad/Remote Actions aktivieren
-            </label>
-
-            <div id="keypadBox" class="col" style="display:none;">
-              <ha-entity-picker class="field" id="keypads" allow-custom-entity="false"
-                label="Action Entities (sensor/event)" multiple></ha-entity-picker>
-
-              <div class="fieldrow">
-                <ha-textfield class="field" id="masterPin" type="password" label="Master PIN (optional)"></ha-textfield>
-                <ha-textfield class="field" id="armHomeAction" label="arm_home action"></ha-textfield>
-                <ha-textfield class="field" id="armAwayAction" label="arm_away action"></ha-textfield>
-                <ha-textfield class="field" id="disarmAction" label="disarm action"></ha-textfield>
-              </div>
-              <div class="muted">Tipp: Action-Strings findest du unter Entwicklerwerkzeuge → Zustände, indem du am Keypad/Remote drückst.</div>
-            </div>
-          </div>
-
-          <div>
-            <div class="title" style="font-size:1em;">Offen gerade:</div>
-            <ul class="openlist" id="openNow"></ul>
-          </div>
-
-          <div id="camSection" class="section" style="display:none;">
-            <div class="title">Kameraansicht</div>
-            <div class="muted" id="camHint"></div>
-            <div class="camgrid" id="camGrid"></div>
-          </div>
-        </div>
+        <div id="content">Lade…</div>
       </ha-card>
     `;
+  }
 
-    const $ = (id) => this._root.getElementById(id);
+  async _getHelpers() {
+    if (this._helpers) return this._helpers;
+    if (window.loadCardHelpers) {
+      this._helpers = await window.loadCardHelpers();
+      return this._helpers;
+    }
+    return null;
+  }
 
-    $("armHome").addEventListener("click", () => this._call("alarm_control_panel", "alarm_arm_home", {}));
-    $("armAway").addEventListener("click", () => this._call("alarm_control_panel", "alarm_arm_away", {}));
-    $("disarm").addEventListener("click", () => this._call("alarm_control_panel", "alarm_disarm", {}));
-    $("trigger").addEventListener("click", () => this._call("alarm_control_panel", "alarm_trigger", {}));
-    $("save").addEventListener("click", () => this._saveConfig());
+  _call(domain, service, data = {}) {
+    if (!this._hass) return;
+    return this._hass.callService(domain, service, data);
+  }
 
-    $("keypadEnabled").addEventListener("change", () => {
-      $("keypadBox").style.display = $("keypadEnabled").checked ? "block" : "none";
+  _armHome() { return this._call("alarm_control_panel", "alarm_arm_home", { entity_id: this._config.alarm_entity }); }
+  _armAway() { return this._call("alarm_control_panel", "alarm_arm_away", { entity_id: this._config.alarm_entity }); }
+  _disarm()  { return this._call("alarm_control_panel", "alarm_disarm", { entity_id: this._config.alarm_entity }); }
+  _trigger() { return this._call("alarm_control_panel", "alarm_trigger", { entity_id: this._config.alarm_entity }); }
+
+  _stateLabel(state) {
+    const s = String(state || "").toLowerCase();
+    if (s === "disarmed") return "disarmed";
+    if (s === "arming") return "arming";
+    if (s === "armed_home") return "armed_home";
+    if (s === "armed_away") return "armed_away";
+    if (s === "pending") return "pending";
+    if (s === "triggered") return "triggered";
+    return s || "unknown";
+  }
+
+  _getPanelCameras(attrs) {
+    const list = attrs && Array.isArray(attrs.camera_entities) ? attrs.camera_entities : [];
+    return list.map((x) => String(x)).filter(Boolean);
+  }
+
+  _getCameras(attrs) {
+    if (this._config.use_panel_cameras) return this._getPanelCameras(attrs);
+    return (this._config.cameras || []).map((x) => String(x)).filter(Boolean);
+  }
+
+  async _buildCameraCardElement(cams) {
+    const helpers = await this._getHelpers();
+    if (!helpers || !cams || cams.length === 0) return null;
+
+    const mode = String(this._config.camera_card || "picture-entity");
+
+    if (mode === "picture-glance") {
+      const cfg = {
+        type: "picture-glance",
+        title: this._config.popup_title || "Kameras",
+        camera_image: cams[0],
+        entities: [],
+      };
+      const el = helpers.createCardElement(cfg);
+      el.hass = this._hass;
+      return el;
+    }
+
+    const stackCfg = {
+      type: "vertical-stack",
+      cards: cams.map((cam) => ({
+        type: "picture-entity",
+        entity: cam,
+        camera_image: cam,
+        show_name: true,
+        show_state: false,
+        camera_view: "auto",
+      })),
+    };
+    const el = helpers.createCardElement(stackCfg);
+    el.hass = this._hass;
+    return el;
+  }
+
+  async _openCameraPopup(attrs) {
+    const cams = this._getCameras(attrs);
+    if (!cams.length) return;
+
+    if (!this._popup) {
+      const dlg = document.createElement("dialog");
+      dlg.className = "zigalarm-popup";
+
+      dlg.innerHTML = `
+        <div class="dlg-head">
+          <div class="dlg-title"></div>
+          <button class="dlg-close" type="button">✕</button>
+        </div>
+        <div class="dlg-body">
+          <div class="dlg-cards"></div>
+        </div>
+      `;
+
+      dlg.querySelector(".dlg-close").addEventListener("click", () => dlg.close());
+      dlg.addEventListener("close", () => {
+        this._popupOpenedFor = null;
+        const box = dlg.querySelector(".dlg-cards");
+        box.innerHTML = "";
+      });
+
+      document.body.appendChild(dlg);
+      this._popup = dlg;
+    }
+
+    this._popup.querySelector(".dlg-title").textContent = this._config.popup_title || "Alarm-Kameras";
+
+    const box = this._popup.querySelector(".dlg-cards");
+    box.innerHTML = "";
+    const camCard = await this._buildCameraCardElement(cams);
+    if (camCard) {
+      box.appendChild(camCard);
+      camCard.hass = this._hass;
+    }
+
+    if (!this._popup.open) {
+      try { this._popup.showModal(); } catch (e) { this._popup.setAttribute("open", ""); }
+    }
+  }
+
+  _closeCameraPopup() {
+    if (this._popup && this._popup.open) {
+      try { this._popup.close(); } catch (e) { this._popup.removeAttribute("open"); }
+    }
+  }
+
+  _updatePopupHass() {
+    if (!this._popup || !this._popup.open) return;
+    const cards = this._popup.querySelectorAll(".dlg-cards > *");
+    cards.forEach((el) => {
+      try { el.hass = this._hass; } catch (e) {}
     });
   }
 
-  _entityState(entityId) {
-    return this._hass && this._hass.states ? this._hass.states[entityId] : null;
-  }
+  _handleAlarmTransition(oldState, newState, st) {
+    const s = String(newState || "").toLowerCase();
+    const old = String(oldState || "").toLowerCase();
 
-  _showError(msg) {
-    const err = this._root.getElementById("err");
-    const errText = this._root.getElementById("errText");
-    err.style.display = "block";
-    errText.textContent = msg;
-  }
-
-  _hideError() {
-    const err = this._root.getElementById("err");
-    err.style.display = "none";
-  }
-
-  _setPickerValue(id, val) {
-    const el = this._root.getElementById(id);
-    if (!el) return;
-    const cur = el.value;
-    const nv = val;
-    const same = JSON.stringify(cur ?? null) === JSON.stringify(nv ?? null);
-    if (!same) el.value = nv;
-  }
-
-  _setField(id, val) {
-    const el = this._root.getElementById(id);
-    if (!el) return;
-    if (String(el.value) !== String(val)) el.value = val;
-  }
-
-  _setCheckbox(id, val) {
-    const el = this._root.getElementById(id);
-    if (!el) return;
-    el.checked = !!val;
-  }
-
-  _update() {
-    const alarmId = this._config.alarm_entity;
-    const alarm = this._entityState(alarmId);
-
-    if (!alarm) {
-      this._showError(`Entity nicht gefunden: ${alarmId}. Prüfe Entwicklerwerkzeuge → Zustände.`);
-      this._root.getElementById("statePill").textContent = "missing";
+    if (this._config.popup_on_trigger && s === "triggered") {
+      this._popupOpenedFor = "triggered";
+      this._openCameraPopup((st && st.attributes) || {});
       return;
     }
 
-    if (alarm.state === "unavailable") {
-      this._showError(`Entity ist unavailable: ${alarmId}. Integration/Backend lädt nicht korrekt (Logs prüfen).`);
-    } else {
-      this._hideError();
+    if (this._config.popup_auto_close_on_disarm && s === "disarmed" && this._popupOpenedFor === "triggered") {
+      this._closeCameraPopup();
+      return;
     }
 
-    const $ = (id) => this._root.getElementById(id);
-    const attrs = alarm.attributes || {};
-
-    $("statePill").textContent = alarm.state;
-
-    const last = attrs.last_trigger_entity;
-    $("lastTrigger").textContent = last ? `Letzte Auslösung: ${last}` : "";
-
-    // ready-to-arm
-    const openSensors = attrs.open_sensors || [];
-    const readyHome = !!attrs.ready_to_arm_home;
-    const readyAway = !!attrs.ready_to_arm_away;
-
-    $("armHome").disabled = !readyHome;
-    $("armAway").disabled = !readyAway;
-
-    if (!readyHome || !readyAway) {
-      $("hintLine").textContent = `Nicht bereit zum Scharfschalten: ${openSensors.join(", ")}`;
-    } else {
-      $("hintLine").textContent = "";
-    }
-
-    // preload setup fields from attributes/options
-    this._setPickerValue("perimeter", attrs.perimeter_sensors || []);
-    this._setPickerValue("motion", attrs.motion_sensors || []);
-    this._setPickerValue("always", attrs.always_sensors || []);
-    this._setPickerValue("siren", attrs.siren_entity || "");
-
-    // lights
-    this._setPickerValue("alarmLights", attrs.alarm_lights || []);
-    const color = attrs.alarm_light_color || "#ff0000";
-    const colorEl = $("lightColor");
-    if (colorEl && colorEl.value !== color) colorEl.value = color;
-    this._setField("lightBrightness", attrs.alarm_light_brightness ?? 255);
-    this._setField("lightEffect", attrs.alarm_light_effect ?? "");
-    this._setCheckbox("lightRestore", attrs.alarm_light_restore ?? true);
-
-    // cameras
-    this._setPickerValue("cameras", attrs.camera_entities || []);
-    this._setCheckbox("camsTriggeredOnly", attrs.camera_show_only_triggered ?? true);
-
-    // delays
-    this._setField("exitDelay", attrs.exit_delay ?? 30);
-    this._setField("entryDelay", attrs.entry_delay ?? 30);
-    this._setField("triggerTime", attrs.trigger_time ?? 180);
-
-    // keypad optional
-    const kben = !!attrs.keypad_enabled;
-    this._setCheckbox("keypadEnabled", kben);
-    $("keypadBox").style.display = kben ? "block" : "none";
-    this._setPickerValue("keypads", attrs.keypad_entities || []);
-    this._setField("masterPin", attrs.master_pin ?? "");
-    this._setField("armHomeAction", attrs.arm_home_action ?? "arm_home");
-    this._setField("armAwayAction", attrs.arm_away_action ?? "arm_away");
-    this._setField("disarmAction", attrs.disarm_action ?? "disarm");
-
-    // show open sensors now
-    const ul = $("openNow");
-    ul.innerHTML = openSensors.length ? openSensors.map((e) => `<li>${e}</li>`).join("") : "<li>keine</li>";
-
-    // camera display section
-    const cams = attrs.camera_entities || [];
-    const onlyTrig = !!(attrs.camera_show_only_triggered ?? true);
-    const isTrig = alarm.state === "triggered";
-
-    const showCams = cams.length > 0 && (!onlyTrig || isTrig);
-    $("camSection").style.display = showCams ? "block" : "none";
-
-    if (showCams) {
-      $("camHint").textContent = onlyTrig
-        ? "Wird nur bei Alarm angezeigt (triggered)."
-        : "Kameras werden immer angezeigt.";
-      this._renderCameras(cams);
+    if (this._config.popup_only_when_triggered && old === "triggered" && s !== "triggered") {
+      this._closeCameraPopup();
     }
   }
 
-  _renderCameras(cameraEntities) {
-    const grid = this._root.getElementById("camGrid");
-    grid.innerHTML = "";
+  async _updateInlineCameras(container, attrs) {
+    container.innerHTML = "";
+    const cams = this._getCameras(attrs);
+    if (!cams.length) return;
 
-    cameraEntities.forEach((eid) => {
-      const wrap = document.createElement("div");
-      wrap.className = "camitem";
-
-      const head = document.createElement("div");
-      head.className = "camhead";
-      head.innerHTML = `<div class="muted">${eid}</div>`;
-
-      const btn = document.createElement("button");
-      btn.className = "btn";
-      btn.textContent = "Mehr";
-      btn.addEventListener("click", () => {
-        // open more-info dialog
-        this._hass?.callService?.("browser_mod", "popup", {}); // harmless if not installed
-        this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId: eid }, bubbles: true, composed: true }));
-      });
-
-      head.appendChild(btn);
-
-      const body = document.createElement("div");
-      body.style.padding = "0";
-
-      // Use built-in HA card element if available
-      // Fallback: just show the entity name
-      const camCard = document.createElement("hui-picture-entity-card");
-      camCard.setConfig({
-        type: "picture-entity",
-        entity: eid,
-        show_name: false,
-        show_state: false,
-        camera_view: "live",
-      });
+    const camCard = await this._buildCameraCardElement(cams);
+    if (camCard) {
+      container.appendChild(camCard);
       camCard.hass = this._hass;
-
-      body.appendChild(camCard);
-
-      wrap.appendChild(head);
-      wrap.appendChild(body);
-      grid.appendChild(wrap);
-    });
+    }
   }
 
-  async _call(domain, service, data) {
-    const alarmId = this._config.alarm_entity;
-    await this._hass.callService(domain, service, { entity_id: alarmId, ...data });
-  }
+  _update() {
+    const content = this._root.getElementById("content");
+    if (!content) return;
 
-  async _saveConfig() {
-    const $ = (id) => this._root.getElementById(id);
-    const alarmId = this._config.alarm_entity;
+    const st = this._st();
+    if (!st) {
+      content.innerHTML = `
+        <div class="warn">
+          <b>Entität nicht gefunden</b><br/>
+          <div style="margin-top:6px;">${this._config.alarm_entity}</div>
+        </div>
+      `;
+      return;
+    }
 
-    const perimeter = $("perimeter").value || [];
-    const motion = $("motion").value || [];
-    const always = $("always").value || [];
-    const siren = $("siren").value || null;
+    const state = this._stateLabel(st.state);
+    const attrs = st.attributes || {};
+    const openSensors = Array.isArray(attrs.open_sensors) ? attrs.open_sensors : [];
+    const lastTrig = attrs.last_trigger_entity || "-";
+    const readyHome = attrs.ready_to_arm_home;
+    const readyAway = attrs.ready_to_arm_away;
 
-    // lights
-    const alarm_lights = $("alarmLights").value || [];
-    const alarm_light_color = String($("lightColor").value || "#ff0000");
-    const alarm_light_brightness = Number($("lightBrightness").value || 255);
-    const alarm_light_effect = String($("lightEffect").value || "");
-    const alarm_light_restore = !!$("lightRestore").checked;
+    const cams = this._getCameras(attrs);
+    const hasCams = cams.length > 0;
 
-    // cameras
-    const camera_entities = $("cameras").value || [];
-    const camera_show_only_triggered = !!$("camsTriggeredOnly").checked;
+    const showCameras = String(this._config.show_cameras || "popup");
+    const showSetup = !!this._config.show_setup;
 
-    const exit_delay = Number($("exitDelay").value || 30);
-    const entry_delay = Number($("entryDelay").value || 30);
-    const trigger_time = Number($("triggerTime").value || 180);
+    content.innerHTML = `
+      <div class="header">
+        <div class="title">${this._config.name || "ZigAlarm"}</div>
+        <div class="pill">${state}</div>
+      </div>
 
-    // keypad optional
-    const keypad_enabled = !!$("keypadEnabled").checked;
-    const keypad_entities = $("keypads").value || [];
-    const master_pin = String($("masterPin").value || "");
-    const arm_home_action = String($("armHomeAction").value || "arm_home");
-    const arm_away_action = String($("armAwayAction").value || "arm_away");
-    const disarm_action = String($("disarmAction").value || "disarm");
+      <div class="row">
+        <button class="btnHome">Aktivieren (Zuhause)</button>
+        <button class="btnAway primary">Aktivieren (Abwesend)</button>
+        <button class="btnDisarm">Unscharf</button>
+        <button class="btnTrig danger">Alarm auslösen</button>
+        ${hasCams ? `<button class="btnCams">Kameras</button>` : ``}
+      </div>
 
-    await this._hass.callService("zigalarm", "set_config", {
-      alarm_entity: alarmId,
-      perimeter_sensors: perimeter,
-      motion_sensors: motion,
-      always_sensors: always,
-      siren_entity: siren,
+      <div class="grid">
+        <div class="box">
+          <h4>Status</h4>
+          <div class="kv"><span>Bereit (Home)</span><span>${readyHome ? "✅" : "⚠️"}</span></div>
+          <div class="kv"><span>Bereit (Away)</span><span>${readyAway ? "✅" : "⚠️"}</span></div>
+          <div class="kv"><span>Letzter Trigger</span><span style="font-family: monospace;">${lastTrig}</span></div>
+        </div>
 
-      alarm_lights,
-      alarm_light_color,
-      alarm_light_brightness,
-      alarm_light_effect,
-      alarm_light_restore,
+        <div class="box">
+          <h4>Offene Sensoren</h4>
+          ${openSensors.length ? `<ul class="list">${openSensors.map((e)=>`<li>${e}</li>`).join("")}</ul>` : `<div class="muted">keine</div>`}
+        </div>
+      </div>
 
-      camera_entities,
-      camera_show_only_triggered,
+      ${showCameras === "inline" && hasCams ? `<div class="cams-inline box"><h4>Kameras</h4><div class="inlineCams"></div></div>` : ``}
 
-      exit_delay,
-      entry_delay,
-      trigger_time,
+      ${showSetup ? `
+        <div class="setup">
+          <b>Setup (Dashboard)</b>
+          <small>Optional: Wenn du hier nichts brauchst → show_setup: false setzen.</small>
+          <div class="muted">Du konfigurierst alles im ZigAlarm Panel. Diese Karte ist hauptsächlich eine Übersicht.</div>
+        </div>
+      ` : ``}
+    `;
 
-      keypad_enabled,
-      keypad_entities,
-      master_pin,
-      arm_home_action,
-      arm_away_action,
-      disarm_action,
+    content.querySelector(".btnHome")?.addEventListener("click", () => this._armHome());
+    content.querySelector(".btnAway")?.addEventListener("click", () => this._armAway());
+    content.querySelector(".btnDisarm")?.addEventListener("click", () => this._disarm());
+    content.querySelector(".btnTrig")?.addEventListener("click", () => this._trigger());
+    content.querySelector(".btnCams")?.addEventListener("click", () => {
+      if (showCameras === "popup") this._openCameraPopup(attrs);
+      else if (showCameras === "inline") {
+        const box = content.querySelector(".inlineCams")?.parentElement;
+        if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     });
+
+    if (showCameras === "inline" && hasCams) {
+      const inline = content.querySelector(".inlineCams");
+      this._updateInlineCameras(inline, attrs);
+    }
   }
 }
 
 customElements.define("zigalarm-card", ZigAlarmCard);
-
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "zigalarm-card",
-  name: "ZigAlarm Card",
-  description: "Alarm panel + entity selection for Zigbee2MQTT sensors (includes WLED + cameras)"
-});
