@@ -1,291 +1,108 @@
-🛡️ ZigAlarm
-Alarmanlage für Home Assistant mit Zigbee2MQTT, WLED & Kameras
+# 🛡️ ZigAlarm
 
-ZigAlarm verwandelt deine Zigbee2MQTT-Sensoren in eine vollwertige, moderne und einfach zu bedienende Alarmanlage für Home Assistant.
+### Alarmanlage für Home Assistant mit Zigbee2MQTT, WLED & Kameras
 
-Prinzip:
+ZigAlarm verwandelt deine Zigbee2MQTT-Sensoren in eine moderne
+Alarmanlage für Home Assistant.
+
 👉 Installieren → Karte einfügen → Sensoren auswählen → fertig.
 
-🇩🇪 Deutsch
-✨ Funktionen
-🧠 Alarm-Logik (Backend)
+------------------------------------------------------------------------
 
-Erstellt ein echtes alarm_control_panel in Home Assistant.
+# 🇩🇪 Deutsch
 
-Zustände:
+## ✨ Funktionen
 
-disarmed
+### 🧠 Alarm-Logik (Backend)
 
-arming
+Erstellt ein echtes `alarm_control_panel`.
 
-armed_home (nur Außenhaut)
-
-armed_away (Außenhaut + Bewegung)
-
-pending
-
+**Zustände:** - disarmed - arming - armed_home - armed_away - pending -
 triggered
 
-Zonen:
+**Zonen:** - Perimeter -- Türen & Fenster\
+- Motion -- Bewegungsmelder\
+- Always (24/7) -- Rauch, Wasser, Sabotage
 
-Perimeter – Türen & Fenster
+Konfigurierbar: - Entry Delay - Exit Delay - Trigger-Zeit
 
-Motion – Bewegungsmelder
+Always-Sensoren lösen auch im disarmed-Modus aus.
 
-Always (24/7) – Rauch, Wasser, Sabotage
+------------------------------------------------------------------------
 
-Konfigurierbar:
+## 🟢 Ready-to-Arm
 
-Entry Delay
+-   Erkennt offene Sensoren
+-   Blockiert Scharfschalten bei offenen Türen/Fenstern
+-   Zeigt offene Sensoren in der Card
 
-Exit Delay
+------------------------------------------------------------------------
 
-Trigger-Zeit
+## 🔊 Sirene
 
-Always-Sensoren lösen immer aus, auch im disarmed-Modus.
+Unterstützt: - switch.* - siren.* - light.\*
 
-🟢 Ready-to-Arm
+------------------------------------------------------------------------
 
-Erkennt automatisch offene Türen/Fenster
+## 💡 Alarm-Lichter / WLED
 
-Berechnet:
+Beliebige light.\* Entities auswählbar.
 
-ready_to_arm_home
+Konfigurierbar: - Farbe (#ff0000) - Helligkeit - Effekt
 
-ready_to_arm_away
+Bei Alarm → Licht wird gesetzt\
+Bei Disarm → Ursprungszustand wird wiederhergestellt
 
-Blockiert das Scharfschalten, wenn noch etwas offen ist
+------------------------------------------------------------------------
 
-Zeigt offene Sensoren direkt in der Card an
+## 📷 Kameras
 
-🔊 Sirene (optional)
+-   camera.\* Entities auswählbar
+-   Optional nur bei Alarm anzeigen
+-   Kamera-Popup bei Alarm möglich
 
-Unterstützt:
+------------------------------------------------------------------------
 
-switch.*
+## 📣 Events
 
-siren.*
+-   zigalarm_always_trigger
+-   zigalarm_arm_blocked
+-   zigalarm_disarm_denied
+-   zigalarm_camera_alert
 
-light.*
+------------------------------------------------------------------------
 
-Verhalten:
+# 🧩 Installation (HACS)
 
-Einschalten bei triggered
+1.  Repository hinzufügen: https://github.com/low-streaming/zigalarm
+    Kategorie: Integration
 
-Ausschalten bei disarm
+2.  Installation
 
-💡 WLED / Alarm-Lichter (empfohlen)
+3.  Neustart
 
-Beliebige light.* Entities auswählbar (z. B. WLED).
+4.  Integration hinzufügen
 
-Konfigurierbar:
+------------------------------------------------------------------------
 
-Farbe (Hex, z. B. #ff0000)
+## Lovelace Resource
 
-Helligkeit
+URL: /hacsfiles/zigalarm/zigalarm-card.js
 
-Effekt (optional)
+Typ: JavaScript Module
 
-Bei Alarm:
+------------------------------------------------------------------------
 
-Lichter werden gesetzt (z. B. rotes Blinken)
+## Card
 
-Bei disarm:
-
-Vorheriger Lichtzustand wird automatisch wiederhergestellt
-
-📷 Kameras (optional)
-
-Auswahl von camera.* Entities in der Card
-
-Optional: nur bei triggered anzeigen
-
-Kamera-Popup bei Alarm möglich
-
-Zusätzliches Event: zigalarm_camera_alert
-
-Ideal für:
-
-Push-Nachrichten
-
-Snapshot-Automationen
-
-Externe Benachrichtigungen
-
-🔢 Keypad / Remote (optional)
-
-Zigbee2MQTT Keypads oder Remotes werden über action-Entities eingebunden.
-
-Konfigurierbar:
-
-arm_home
-
-arm_away
-
-disarm
-
-Optional:
-
-Master-PIN für Unscharfschalten
-
-📣 Events für Automationen
-
-ZigAlarm feuert folgende Events im HA-Eventbus:
-
-zigalarm_always_trigger
-
-zigalarm_arm_blocked
-
-zigalarm_disarm_denied
-
-zigalarm_camera_alert
-
-Damit lassen sich:
-
-Push-Nachrichten
-
-Logs
-
-Snapshots
-
-Erweiterte Automationen
-
-umsetzen.
-
-🧩 Installation (HACS)
-
-HACS öffnen
-
-Custom Repository hinzufügen:
-
-https://github.com/low-streaming/zigalarm
-
-
-Kategorie: Integration
-
-ZigAlarm installieren
-
-Home Assistant neu starten
-
-Einstellungen → Geräte & Dienste → Integration hinzufügen → ZigAlarm
-
-🧩 Lovelace Card Resource hinzufügen
-
-Einstellungen → Dashboards → Ressourcen
-
-URL:
-/hacsfiles/zigalarm/zigalarm-card.js
-
-Typ:
-JavaScript Module
-
-🧩 Karte hinzufügen
+``` yaml
 type: custom:zigalarm-card
 alarm_entity: alarm_control_panel.zigalarm
+```
 
+------------------------------------------------------------------------
 
-Danach im Setup-Menü der Card:
+# 📜 License
 
-Sensoren auswählen
-
-Sirenen definieren
-
-Lichter konfigurieren
-
-Kameras hinzufügen
-
-Speichern klicken
-
-🔍 Hinweise zu Zigbee2MQTT Keypads
-
-So findest du die richtigen Action-Strings:
-
-Entwicklerwerkzeuge → Zustände
-
-Das sensor.*_action beobachten
-
-Am Keypad drücken
-
-Angezeigten String in der Card eintragen
-
-📂 Projektstruktur
-custom_components/zigalarm/
-    __init__.py
-    alarm_control_panel.py
-    config_flow.py
-    const.py
-    manifest.json
-    services.yaml
-
-www/zigalarm-card.js
-www/zigalarm-card-editor.js
-
-🇬🇧 English
-🛡️ ZigAlarm – Alarm System for Home Assistant
-
-ZigAlarm turns your Zigbee2MQTT sensors into a modern and powerful alarm system for Home Assistant.
-
-Concept:
-👉 Install → Add card → Select entities → Done.
-
-Features
-
-Real alarm_control_panel entity
-
-Perimeter / Motion / Always zones
-
-Entry & Exit delays
-
-Optional siren support
-
-WLED / light alarm effects
-
-Camera popup on trigger
-
-Optional Zigbee2MQTT keypad support
-
-Event-based automation hooks
-
-Installation (HACS)
-
-Add this repository as Custom Repository:
-
-https://github.com/low-streaming/zigalarm
-
-
-Category: Integration
-
-Install ZigAlarm
-
-Restart Home Assistant
-
-Add Integration
-
-Add Card Resource
-/hacsfiles/zigalarm/zigalarm-card.js
-
-
-Type: JavaScript Module
-
-Add Card
-type: custom:zigalarm-card
-alarm_entity: alarm_control_panel.zigalarm
-
-Repository Structure
-custom_components/zigalarm/ – backend
-www/zigalarm-card.js – Lovelace card
-
-📜 License
-
-MIT License
-© LOW – Streaming
-
-Free to use with standard warranty disclaimer.
-
-❤️ Support
-
-If you like ZigAlarm:
-
-⭐ Star the repository
-🐛 Report bugs
-💡 Suggest features
+MIT License\
+© LOW -- Streaming
