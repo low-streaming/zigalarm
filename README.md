@@ -1,3 +1,8 @@
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![github_release](https://img.shields.io/github/v/release/low-streaming/zigalarm?style=for-the-badge)](https://github.com/low-streaming/zigalarm/releases)
+[![github_license](https://img.shields.io/github/license/low-streaming/zigalarm?style=for-the-badge)](https://github.com/low-streaming/zigalarm/blob/master/LICENSE)
+
+
 # 🛡️ ZigAlarm
 
 **Advanced Alarm System for Home Assistant**\
