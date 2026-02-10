@@ -35,7 +35,7 @@ Erstellt eine native `alarm_control_panel`-Entität.
 
 **Zonen:**
 
--   Außenhaut (Türen & Fenster)
+-   Außen (Türen & Fenster)
 -   Bewegung (Innenraum)
 -   24/7 (Rauch, Wasser, Sabotage)
 
