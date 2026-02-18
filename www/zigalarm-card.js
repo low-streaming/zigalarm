@@ -92,129 +92,127 @@ class ZigAlarmCard extends HTMLElement {
     this._root.innerHTML = `
       <style>
         :host {
-          --za-bg-body: #0f172a; 
-          --za-bg-card: rgba(15, 23, 42, 0.6);
-          --za-primary: #3b82f6; 
-          --za-primary-glow: rgba(59, 130, 246, 0.5);
+          --za-bg-body: #0b0c15; 
+          --za-bg-card: rgba(20, 24, 35, 0.7);
+          --za-primary: #0ea5e9; 
+          --za-accent: #8b5cf6;
           --za-success: #10b981;
-          --za-success-glow: rgba(16, 185, 129, 0.5);
           --za-danger: #ef4444; 
-          --za-danger-glow: rgba(239, 68, 68, 0.5);
           --za-text: #f8fafc;
+          --za-text-muted: #94a3b8;
           --za-border: rgba(255, 255, 255, 0.08);
-          font-family: ui-sans-serif, system-ui, sans-serif;
+          font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          color: var(--za-text);
         }
 
         ha-card {
-          padding: 24px;
-          border-radius: 24px;
-          background: linear-gradient(145deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95)) !important;
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          padding: 20px;
+          border-radius: 20px;
+          background: linear-gradient(135deg, rgba(20, 24, 35, 0.95), rgba(11, 12, 21, 0.98)) !important;
           border: 1px solid var(--za-border);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.3);
           color: var(--za-text);
-          transition: all 0.3s ease;
-          overflow: hidden;
           position: relative;
+          overflow: hidden;
         }
         
-        /* Aurora effect on card specific states */
+        /* Subtle grid pattern */
         ha-card::before {
-          content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-          background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.05), transparent 60%);
-          animation: aurora 15s linear infinite; pointer-events: none;
+           content: ""; position: absolute; inset:0; 
+           background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+           background-size: 20px 20px; pointer-events: none; opacity: 0.5;
         }
-        @keyframes aurora { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px; position:relative; z-index:2; }
+        .header-left { display:flex; align-items:center; gap: 8px; }
         
         .title { 
-          font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em;
-          background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+          font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em;
+          background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         
         .pill { 
-          font-size: 0.75rem; padding: 6px 14px; border-radius: 99px; 
+          font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; 
           background: rgba(255,255,255,0.05); border: 1px solid var(--za-border);
-          font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
-          transition: all 0.3s;
+          font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
         }
-        
-        /* State styling via data-state on header */
         .header[data-state*="armed"] .pill {
-          background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7; box-shadow: 0 0 12px var(--za-success-glow);
+          background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7; box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
         }
         .header[data-state="triggered"] .pill {
-          background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.6); color: #fca5a5; animation: pulse-danger 1.5s infinite;
+          background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.6); color: #fca5a5; animation: pulse-danger 1s infinite;
         }
+        
         @keyframes pulse-danger { 
           0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 
           70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 
-          100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } 
         }
 
-        .row { display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; position:relative; z-index:2; }
+        /* Actions Grid */
+        .actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; position: relative; z-index: 2; }
         
-        button {
-          border: 1px solid var(--za-border); border-radius: 14px; padding: 12px 18px;
-          cursor: pointer; background: rgba(255,255,255,0.03); color: var(--za-text);
-          font-weight: 700; transition: all 0.2s; flex: 1; white-space: nowrap;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-size: 0.9rem;
+        .btn-action {
+           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+           background: rgba(255,255,255,0.03); border: 1px solid var(--za-border);
+           border-radius: 12px; padding: 10px 4px; cursor: pointer; color: var(--za-text-muted);
+           transition: all 0.2s;
         }
-        button:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .btn-action:hover { background: rgba(14, 165, 233, 0.1); border-color: var(--za-primary); color: #fff; transform: translateY(-2px); }
+        .btn-action.danger:hover { background: rgba(239, 68, 68, 0.15); border-color: var(--za-danger); }
         
-        button.primary { 
-          background: linear-gradient(135deg, var(--za-primary) 0%, #2563eb 100%); color: #fff; border: none;
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        .icon-box svg { width: 24px; height: 24px; display: block; }
+        .btn-action span { font-size: 0.7rem; font-weight: 600; }
+        
+        .btn-cams {
+           width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+           padding: 10px; border-radius: 12px; border: 1px solid var(--za-border);
+           background: rgba(255,255,255,0.03); color: var(--za-text); cursor: pointer;
+           margin-bottom: 16px; position: relative; z-index: 2; font-weight: 600; font-size: 0.9rem;
         }
-        button.primary:hover { box-shadow: 0 8px 16px rgba(37, 99, 235, 0.4); }
+        .btn-cams:hover { background: rgba(255,255,255,0.08); }
 
-        button.danger {
-          background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5;
-        }
-        button.danger:hover { background: rgba(239, 68, 68, 0.25); color: #fff; box-shadow: 0 8px 20px var(--za-danger-glow); }
-
-        .muted { opacity: .6; font-size: 0.8rem; margin-top: 8px; }
-        
-        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; position:relative; z-index:2; }
+        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 0; position:relative; z-index:2; }
         
         .box { 
-          border: 1px solid var(--za-border); border-radius: 18px; padding: 16px;
-          background: rgba(0,0,0,0.2); transition: all 0.2s;
+          border: 1px solid var(--za-border); border-radius: 12px; padding: 12px;
+          background: rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 8px;
+          min-height: 80px;
         }
-        .box:hover { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.15); }
+        .box h4 { margin: 0 0 4px 0; font-size: 0.75rem; 
+           color: var(--za-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; 
+        }
 
-        .box h4 { margin: 0 0 10px 0; font-size: 0.8rem; opacity: .7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .status-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+        .status-row.ok .dot { background: var(--za-success); box-shadow: 0 0 8px var(--za-success); }
+        .status-row.warn .dot { background: #f59e0b; }
+        .status-row.warn { opacity: 0.8; }
         
-        .kv { display:flex; justify-content:space-between; gap:12px; font-size: 0.9rem; margin-bottom: 6px; }
-        .kv span:first-child { color: var(--za-text-muted); }
+        .last-trig { font-size: 0.75rem; color: var(--za-text-muted); font-family: monospace; margin-top: auto; }
+
+        .list { margin: 0; padding: 0 0 0 12px; font-size: 0.8rem; color: var(--za-danger); }
+        .muted-ok { color: var(--za-success); font-size: 0.8rem; opacity: 0.8; font-style: italic; }
+
+        .setup { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--za-border); position: relative; z-index: 2; }
         
-        .list { margin: 6px 0 0 0; padding-left: 18px; font-size: 0.85rem; opacity: .85; }
-        .cams-inline { margin-top: 20px; position:relative; z-index:2; }
+        .footer-card {
+           margin-top: 16px; text-align: center; font-size: 0.65rem; color: var(--za-text-muted); 
+           opacity: 0.5; letter-spacing: 0.05em; text-transform: uppercase; position: relative; z-index: 2;
+        }
         
-        .warn { margin-top: 16px; padding: 16px; border-radius: 16px; background: rgba(255,193,7,.1); border: 1px solid rgba(255,193,7,.2); color: #fcd34d; position:relative; z-index:2; }
-        
-        .setup { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--za-border); position:relative; z-index:2; }
-        
-        /* Modal Popup */
+        /* Modal Popup Styles remain similar but darkened */
         dialog.zigalarm-popup {
-          border: 1px solid rgba(255,255,255,0.1); border-radius: 28px;
+          border: 1px solid var(--za-border); border-radius: 20px;
           padding: 0; max-width: min(900px, 92vw); width: 92vw;
-          background: #0f172a; box-shadow: 0 50px 100px -20px rgba(0,0,0,0.7);
-          overflow: hidden;
+          background: #1a1b23; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+          color: #fff; overflow: hidden;
         }
-        dialog::backdrop { background: rgba(0,0,0,.8); backdrop-filter: blur(8px); }
-        
-        .dlg-head {
-          display:flex; align-items:center; justify-content:space-between; gap:12px;
-          padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.08);
-          background: rgba(255,255,255,0.02);
-        }
-        .dlg-title { font-weight: 800; font-size: 1.25rem; color: #fff; }
-        .dlg-body { padding: 24px; background: #0f172a; }
-        .dlg-close { background: rgba(255,255,255,0.1); width: 36px; height: 36px; padding: 0; display:flex; align-items:center; justify-content:center; border-radius: 50%; border:none; color:#fff; cursor:pointer; transition: all 0.2s; }
-        .dlg-close:hover { background: rgba(239, 68, 68, 0.8); transform: rotate(90deg); }
+        dialog::backdrop { background: rgba(0,0,0,.8); backdrop-filter: blur(5px); }
+        .dlg-head { padding: 16px 20px; border-bottom: 1px solid var(--za-border); display: flex; justify-content: space-between; align-items: center; }
+        .dlg-title { font-weight: 700; }
+        .dlg-close { background: none; border: 1px solid var(--za-border); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; }
+        .dlg-close:hover { background: var(--za-danger); border-color: var(--za-danger); }
+        .dlg-body { padding: 20px; background: #0b0c15; }
         .dlg-cards { display: grid; gap: 16px; }
       </style>
 
@@ -416,50 +414,85 @@ class ZigAlarmCard extends HTMLElement {
     const showCameras = String(this._config.show_cameras || "popup");
     const showSetup = !!this._config.show_setup;
 
+    // State Icons mapping
+    const getIcon = (action) => {
+      if (action === 'home') return '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 5.69l5 4.5V18h-2v-6H9v6H7v-7.81l5-4.5M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg>';
+      if (action === 'away') return '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3m0 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>';
+      if (action === 'disarm') return '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4m0 4a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3m5.13 12A9.69 9.69 0 0 1 12 20.92 9.69 9.69 0 0 1 6.87 17a5.5 5.5 0 0 1 10.26 0z"/></svg>';
+      if (action === 'trigger') return '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>';
+      if (action === 'camera') return '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19 6.5h-1.28l-.32-1a3 3 0 0 0-2.84-2H9.44A3 3 0 0 0 6.6 5.5l-.32 1H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-8a3 3 0 0 0-3-3M12 17a5 5 0 1 1 5-5 5 5 0 0 1-5 5m0-8a3 3 0 1 0 3 3 3 3 0 0 0-3-3z"/></svg>';
+      return '';
+    };
+
+    const iconAway = '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4m0 6a3 3 0 0 1 3 3c0 1.3-.84 2.4-2 2.82V15h-2v-2.18c-1.16-.42-2-1.52-2-2.82a3 3 0 0 1 3-3z"/></svg>';
+
     content.innerHTML = `
-      <div class="header" data-state="${st.state || ""}">
-        <div class="title">${this._config.name || "ZigAlarm"}</div>
+      < div class="header" data - state="${st.state || ""}" >
+        <div class="header-left">
+           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--za-primary)"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+           <div class="title">${this._config.name || "ZigAlarm"}</div>
+        </div>
         <div class="pill">${state}</div>
+      </div >
+
+      <div class="actions-grid">
+        <button class="btn-action" title="Zuhause aktivieren" id="btnHome">
+          <div class="icon-box">${getIcon('home')}</div>
+          <span>Zuhause</span>
+        </button>
+        <button class="btn-action" title="Abwesend aktivieren" id="btnAway">
+          <div class="icon-box">${iconAway}</div>
+          <span>Abwesend</span>
+        </button>
+        <button class="btn-action" title="Unscharf schalten" id="btnDisarm">
+          <div class="icon-box">${getIcon('disarm')}</div>
+          <span>Unscharf</span>
+        </button>
+        <button class="btn-action danger" title="Alarm auslösen" id="btnTrig">
+          <div class="icon-box">${getIcon('trigger')}</div>
+          <span>ALARM</span>
+        </button>
       </div>
 
-      <div class="row">
-        <button class="btnHome">Aktivieren (Zuhause)</button>
-        <button class="btnAway primary">Aktivieren (Abwesend)</button>
-        <button class="btnDisarm">Unscharf</button>
-        <button class="btnTrig danger">Alarm auslösen</button>
-        ${hasCams ? `<button class="btnCams">Kameras</button>` : ``}
-      </div>
+      ${hasCams ? `<button class="btn-cams" id="btnCams">${getIcon('camera')} Kameras ansehen</button>` : ``}
 
-      <div class="grid">
-        <div class="box">
-          <h4>Status</h4>
-          <div class="kv"><span>Bereit (Home)</span><span>${readyHome ? "✅" : "⚠️"}</span></div>
-          <div class="kv"><span>Bereit (Away)</span><span>${readyAway ? "✅" : "⚠️"}</span></div>
-          <div class="kv"><span>Letzter Trigger</span><span style="font-family: monospace;">${lastTrig}</span></div>
+    <div class="grid">
+      <div class="box">
+        <h4>System Status</h4>
+        <div class="status-row ${readyHome ? 'ok' : 'warn'}">
+          <div class="dot"></div> <span>Bereit für Home</span>
         </div>
-
-        <div class="box">
-          <h4>Offene Sensoren</h4>
-          ${openSensors.length ? `<ul class="list">${openSensors.map((e) => `<li>${e}</li>`).join("")}</ul>` : `<div class="muted">keine</div>`}
+        <div class="status-row ${readyAway ? 'ok' : 'warn'}">
+          <div class="dot"></div> <span>Bereit für Away</span>
         </div>
+        ${lastTrig !== "-" ? `<div class="last-trig">Letzter: ${lastTrig}</div>` : ''}
       </div>
+
+      <div class="box">
+        <h4>Offene Sensoren</h4>
+        ${openSensors.length ? `<ul class="list">${openSensors.map((e) => `<li>${e}</li>`).join("")}</ul>` : `<div class="muted-ok">Alles geschlossen</div>`}
+      </div>
+    </div>
 
       ${showCameras === "inline" && hasCams ? `<div class="cams-inline box"><h4>Kameras</h4><div class="inlineCams"></div></div>` : ``}
 
       ${showSetup ? `
         <div class="setup">
-          <b>Setup (Dashboard)</b>
-          <small>Optional: Wenn du hier nichts brauchst → show_setup: false setzen.</small>
-          <div class="muted">Du konfigurierst alles im ZigAlarm Panel. Diese Karte ist hauptsächlich eine Übersicht.</div>
+          <b>Setup</b>
+          <small class="muted">Konfiguration über das ZigAlarm Panel.</small>
         </div>
-      ` : ``}
+      ` : ``
+      }
+
+    <div class="footer-card">powered by openKAIRO.de</div>
     `;
 
-    content.querySelector(".btnHome")?.addEventListener("click", () => this._armHome());
-    content.querySelector(".btnAway")?.addEventListener("click", () => this._armAway());
-    content.querySelector(".btnDisarm")?.addEventListener("click", () => this._disarm());
-    content.querySelector(".btnTrig")?.addEventListener("click", () => this._trigger());
-    content.querySelector(".btnCams")?.addEventListener("click", () => {
+    // Re-attach listeners
+    content.querySelector("#btnHome")?.addEventListener("click", () => this._armHome());
+    content.querySelector("#btnAway")?.addEventListener("click", () => this._armAway());
+    content.querySelector("#btnDisarm")?.addEventListener("click", () => this._disarm());
+    content.querySelector("#btnTrig")?.addEventListener("click", () => this._trigger());
+    content.querySelector("#btnCams")?.addEventListener("click", () => {
       if (showCameras === "popup") this._openCameraPopup(attrs);
       else if (showCameras === "inline") {
         const box = content.querySelector(".inlineCams")?.parentElement;

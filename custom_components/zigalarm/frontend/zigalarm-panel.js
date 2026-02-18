@@ -469,7 +469,7 @@ class ZigAlarmPanel extends HTMLElement {
 
         </div>
 
-        <div class="footer">Powered by ZIGALARM</div>
+        <div class="footer">powered by openKAIRO.de</div>
 
         <!-- Modals placed here -->
         <div class="modalBack" id="pickerBack">
