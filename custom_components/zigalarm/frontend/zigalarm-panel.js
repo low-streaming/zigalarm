@@ -291,6 +291,17 @@ class ZigAlarmPanel extends HTMLElement {
           text-transform: uppercase;
           opacity: 0.6;
         }
+        .footer a {
+          color: var(--za-primary);
+          text-decoration: none;
+          font-weight: 800;
+          text-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+          transition: all 0.2s;
+        }
+        .footer a:hover {
+          color: #fff;
+          text-shadow: 0 0 15px var(--za-primary);
+        }
         
         /* Pickers from before */
         .pickRow { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 12px; }
@@ -468,24 +479,6 @@ class ZigAlarmPanel extends HTMLElement {
           </div>
 
         </div>
-
-        .footer a {
-          color: var(--za-primary);
-          text-decoration: none;
-          font-weight: 800;
-          text-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
-          transition: all 0.2s;
-        }
-        .footer a:hover {
-          color: #fff;
-          text-shadow: 0 0 15px var(--za-primary);
-        }
-      </style>
-
-      <div class="app-container">
-        <!-- ... (navbar code is unchanged) ... -->
-        
-        <!-- ... (main content code is unchanged) ... -->
 
         <div class="footer">Powered by <a href="https://openkairo.de" target="_blank">OPENKAIRO</a></div>
 
