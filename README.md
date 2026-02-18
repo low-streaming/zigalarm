@@ -93,6 +93,27 @@ Konfigurierbar:
 
 ------------------------------------------------------------------------
 
+## 📍 Roadmap / Das kommt noch
+
+-   [ ] **Benachrichtigungen**: Push-Nachrichten an mobile Geräte bei Alarm
+-   [ ] **PIN-Code Support**: Optionale PIN-Eingabe zum Entschärfen
+-   [ ] **Zeitpläne**: Automatisches Scharfschalten nach Zeitplan
+-   [ ] **Geofencing**: Automatisches Scharfschalten bei Abwesenheit
+-   [ ] **Historie**: Detailliertes Alarm-Logbuch im Panel
+-   [ ] **Mehr Sprachen**: Volle Unterstützung für weitere Sprachen (EN, FR, ES)
+
+------------------------------------------------------------------------
+
+## ❤️ Unterstützen
+
+Gefällt dir ZigAlarm? Unterstütze die Entwicklung mit einer Spende!
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=info@low-streaming.de&item_name=ZigAlarm+Support&currency_code=EUR)
+
+**PayPal:** [info@low-streaming.de](https://paypal.me/lowstreaming)
+
+------------------------------------------------------------------------
+
 ## 🧩 Installation (HACS)
 
 ### 1️⃣ Repository hinzufügen
@@ -234,6 +255,27 @@ Configurable:
 -   Select multiple `camera.*` entities
 -   Optional: show only when triggered
 -   Event: `zigalarm_camera_alert`
+
+------------------------------------------------------------------------
+
+## 📍 Roadmap / Coming Soon
+
+-   [ ] **Notifications**: Mobile push notifications on alarm
+-   [ ] **PIN Code Support**: Optional PIN entry for disarming
+-   [ ] **Schedules**: Automated arming/disarming schedules
+-   [ ] **Geofencing**: Auto-arm when leaving home
+-   [ ] **History**: Detailed alarm log in the panel
+-   [ ] **More Languages**: Full support for additional languages (EN, FR, ES)
+
+------------------------------------------------------------------------
+
+## ❤️ Support
+
+If you like ZigAlarm, consider supporting the development!
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=info@low-streaming.de&item_name=ZigAlarm+Support&currency_code=EUR)
+
+**PayPal:** [info@low-streaming.de](https://paypal.me/lowstreaming)
 
 ------------------------------------------------------------------------
 
