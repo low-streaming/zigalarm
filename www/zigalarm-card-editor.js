@@ -61,31 +61,52 @@ class ZigAlarmCardEditor extends HTMLElement {
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display:block; }
-        .wrap { padding: 10px; }
-        .row { display:flex; gap:10px; align-items:center; margin: 10px 0; flex-wrap:wrap; }
-        label { display:block; font-size: 12px; opacity:.8; margin-bottom: 4px; }
+        :host { display: block; --za-primary: #3b82f6; --za-border: rgba(255, 255, 255, 0.1); --za-bg-input: rgba(0, 0, 0, 0.2); }
+        .wrap { padding: 12px; }
+        .row { display: flex; gap: 12px; align-items: start; margin-bottom: 16px; flex-wrap: wrap; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; opacity: 0.9; margin-bottom: 6px; color: var(--primary-text-color); }
+        
         input, select {
           width: 100%;
-          padding: 10px;
-          border-radius: 10px;
-          border: 1px solid var(--divider-color);
-          background: var(--card-background-color);
+          padding: 12px;
+          border-radius: 12px;
+          border: 1px solid var(--divider-color, rgba(255,255,255,0.1));
+          background: var(--za-bg-input);
           color: var(--primary-text-color);
+          font-family: inherit;
+          font-size: 0.9rem;
+          outline: none;
+          box-sizing: border-box;
+          transition: border-color 0.2s;
         }
-        .col { flex: 1 1 220px; min-width: 220px; }
-        .hint { font-size: 12px; opacity:.75; margin-top: 6px; }
-        .chips { display:flex; flex-wrap:wrap; gap: 8px; }
+        input:focus, select:focus { border-color: var(--za-primary); }
+        
+        .col { flex: 1 1 240px; }
+        .hint { font-size: 0.8rem; opacity: 0.6; margin-top: 6px; line-height: 1.4; }
+        
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
         .chip {
-          border: 1px solid var(--divider-color);
-          border-radius: 999px;
-          padding: 6px 10px;
-          font-size: 12px;
-          cursor:pointer;
-          user-select:none;
+          border: 1px solid var(--divider-color, rgba(255,255,255,0.1));
+          border-radius: 99px;
+          padding: 8px 14px;
+          font-size: 0.85rem;
+          cursor: pointer;
+          user-select: none;
+          background: rgba(255,255,255,0.05);
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
-        .chip.on { background: var(--primary-color); color: var(--text-primary-color,#fff); border-color: transparent; }
-        .small { font-size: 12px; opacity:.85; }
+        .chip:hover {
+          background: rgba(255,255,255,0.1);
+        }
+        .chip.on {
+          background: rgba(59, 130, 246, 0.2);
+          color: #bfdbfe;
+          border-color: rgba(59, 130, 246, 0.5);
+        }
+        .small { font-size: 0.75rem; opacity: 0.7; }
       </style>
 
       <div class="wrap">
@@ -95,11 +116,11 @@ class ZigAlarmCardEditor extends HTMLElement {
             <select id="entity">
               <option value="">-- wählen --</option>
               ${alarmEntities
-                .map(
-                  (e) =>
-                    `<option value="${e}" ${this._config.entity === e ? "selected" : ""}>${e}</option>`
-                )
-                .join("")}
+        .map(
+          (e) =>
+            `<option value="${e}" ${this._config.entity === e ? "selected" : ""}>${e}</option>`
+        )
+        .join("")}
             </select>
             <div class="hint">Muss ein <code>alarm_control_panel.*</code> sein.</div>
           </div>
@@ -164,9 +185,8 @@ class ZigAlarmCardEditor extends HTMLElement {
           </div>
         </div>
 
-        ${
-          showManualCams
-            ? `<div class="row">
+        ${showManualCams
+        ? `<div class="row">
                  <div class="col">
                    <label>Manuelle Kamera Entities (camera.*)</label>
                    <select id="camera_add">
@@ -176,15 +196,15 @@ class ZigAlarmCardEditor extends HTMLElement {
                    <div class="hint small">Auswahl fügt hinzu – mehrfach möglich.</div>
                    <div class="chips" style="margin-top:8px;">
                      ${(this._config.cameras || [])
-                       .map(
-                         (c) => `<div class="chip on" data-del="${c}">✕ ${c}</div>`
-                       )
-                       .join("")}
+          .map(
+            (c) => `<div class="chip on" data-del="${c}">✕ ${c}</div>`
+          )
+          .join("")}
                    </div>
                  </div>
                </div>`
-            : `<div class="hint">Kamera-Liste wird aus dem Panel gelesen.</div>`
-        }
+        : `<div class="hint">Kamera-Liste wird aus dem Panel gelesen.</div>`
+      }
       </div>
     `;
 

@@ -91,45 +91,106 @@ class ZigAlarmCard extends HTMLElement {
   _renderSkeleton() {
     this._root.innerHTML = `
       <style>
-        ha-card { padding: 16px; }
-        .header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-        .title { font-size: 18px; font-weight: 600; }
-        .pill { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.15); }
-        .row { display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; }
-        button {
-          border: 0; border-radius: 10px; padding: 8px 12px; cursor: pointer;
-          background: rgba(0,0,0,0.06);
+        :host {
+          --za-primary: #3b82f6; 
+          --za-danger: #ef4444;
+          --za-bg-card: rgba(30, 30, 35, 0.6);
+          --za-border: rgba(255, 255, 255, 0.08);
+          --za-text: #e2e8f0;
+          font-family: ui-sans-serif, system-ui, sans-serif;
         }
-        button.primary { background: var(--primary-color); color: var(--text-primary-color, #fff); }
-        button.danger { background: #d9534f; color: #fff; }
-        .muted { opacity: .75; font-size: 12px; margin-top: 8px; }
-        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-        .box { border: 1px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 10px; }
-        .box h4 { margin: 0 0 6px 0; font-size: 13px; opacity: .9; }
-        .kv { display:flex; justify-content:space-between; gap:12px; font-size: 13px; }
-        .list { margin: 6px 0 0 0; padding-left: 18px; font-size: 12px; opacity: .85; }
-        .cams-inline { margin-top: 12px; }
-        .warn { margin-top: 12px; padding: 10px; border-radius: 12px; background: rgba(255,193,7,.15); border: 1px solid rgba(255,193,7,.35); }
-        .setup { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.12); }
-        .setup small { display:block; opacity:.8; margin-bottom: 8px; }
-        /* native dialog popup */
+        ha-card {
+          padding: 20px;
+          border-radius: 20px;
+          background: var(--za-bg-card) !important;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid var(--za-border);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+          color: var(--za-text);
+          transition: all 0.3s ease;
+        }
+        ha-card:hover { border-color: rgba(255,255,255,0.15); box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+
+        .header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 16px; }
+        .title { font-size: 1.25rem; font-weight: 700; background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .pill { 
+          font-size: 0.75rem; padding: 4px 10px; border-radius: 99px; 
+          background: rgba(255,255,255,0.08); border: 1px solid var(--za-border);
+          font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+        }
+        
+        .row { display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; }
+        
+        button {
+          border: 1px solid var(--za-border);
+          border-radius: 12px;
+          padding: 10px 14px;
+          cursor: pointer;
+          background: rgba(255,255,255,0.03);
+          color: var(--za-text);
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        button:hover { background: rgba(255,255,255,0.08); transform: translateY(-1px); }
+        
+        button.primary { 
+          background: linear-gradient(135deg, var(--za-primary) 0%, #2563eb 100%);
+          color: #fff; border: none;
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        button.primary:hover { box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4); }
+
+        button.danger {
+          background: rgba(239, 68, 68, 0.15);
+          border-color: rgba(239, 68, 68, 0.3);
+          color: #fca5a5;
+        }
+        button.danger:hover { background: rgba(239, 68, 68, 0.25); color: #fff; }
+
+        .muted { opacity: .6; font-size: 0.8rem; margin-top: 8px; }
+        
+        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+        
+        .box { 
+          border: 1px solid var(--za-border); border-radius: 14px; padding: 12px;
+          background: rgba(0,0,0,0.15);
+        }
+        .box h4 { margin: 0 0 8px 0; font-size: 0.85rem; opacity: .8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        .kv { display:flex; justify-content:space-between; gap:12px; font-size: 0.9rem; margin-bottom: 4px; }
+        .kv span:first-child { opacity: 0.7; }
+        
+        .list { margin: 6px 0 0 0; padding-left: 18px; font-size: 0.85rem; opacity: .85; }
+        .cams-inline { margin-top: 16px; }
+        
+        .warn { margin-top: 12px; padding: 12px; border-radius: 12px; background: rgba(255,193,7,.1); border: 1px solid rgba(255,193,7,.2); color: #fcd34d; }
+        
+        .setup { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--za-border); }
+        
+        /* Modal Popup */
         dialog.zigalarm-popup {
-          border: 0;
-          border-radius: 14px;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 24px;
           padding: 0;
           max-width: min(900px, 92vw);
           width: 92vw;
+          background: #1a1b20;
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+          overflow: hidden;
         }
-        dialog::backdrop { background: rgba(0,0,0,.55); }
+        dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(5px); }
+        
         .dlg-head {
           display:flex; align-items:center; justify-content:space-between; gap:12px;
-          padding: 12px 14px; border-bottom: 1px solid rgba(0,0,0,0.12);
-          background: var(--card-background-color, #fff);
+          padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.02);
         }
-        .dlg-title { font-weight: 600; }
-        .dlg-body { padding: 12px 14px; background: var(--card-background-color, #fff); }
-        .dlg-close { background: rgba(0,0,0,.06); }
-        .dlg-cards { display: grid; gap: 10px; }
+        .dlg-title { font-weight: 700; font-size: 1.1rem; color: #fff; }
+        .dlg-body { padding: 20px; background: #1a1b20; }
+        .dlg-close { background: rgba(255,255,255,0.1); width: 32px; height: 32px; padding: 0; display:flex; align-items:center; justify-content:center; border-radius: 50%; border:none; color:#fff; }
+        .dlg-close:hover { background: rgba(255,255,255,0.2); }
+        .dlg-cards { display: grid; gap: 16px; }
       </style>
 
       <ha-card>
@@ -154,7 +215,7 @@ class ZigAlarmCard extends HTMLElement {
 
   _armHome() { return this._call("alarm_control_panel", "alarm_arm_home", { entity_id: this._config.alarm_entity }); }
   _armAway() { return this._call("alarm_control_panel", "alarm_arm_away", { entity_id: this._config.alarm_entity }); }
-  _disarm()  { return this._call("alarm_control_panel", "alarm_disarm", { entity_id: this._config.alarm_entity }); }
+  _disarm() { return this._call("alarm_control_panel", "alarm_disarm", { entity_id: this._config.alarm_entity }); }
   _trigger() { return this._call("alarm_control_panel", "alarm_trigger", { entity_id: this._config.alarm_entity }); }
 
   _stateLabel(state) {
@@ -266,7 +327,7 @@ class ZigAlarmCard extends HTMLElement {
     if (!this._popup || !this._popup.open) return;
     const cards = this._popup.querySelectorAll(".dlg-cards > *");
     cards.forEach((el) => {
-      try { el.hass = this._hass; } catch (e) {}
+      try { el.hass = this._hass; } catch (e) { }
     });
   }
 
@@ -354,7 +415,7 @@ class ZigAlarmCard extends HTMLElement {
 
         <div class="box">
           <h4>Offene Sensoren</h4>
-          ${openSensors.length ? `<ul class="list">${openSensors.map((e)=>`<li>${e}</li>`).join("")}</ul>` : `<div class="muted">keine</div>`}
+          ${openSensors.length ? `<ul class="list">${openSensors.map((e) => `<li>${e}</li>`).join("")}</ul>` : `<div class="muted">keine</div>`}
         </div>
       </div>
 
