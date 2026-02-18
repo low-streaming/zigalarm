@@ -91,129 +91,119 @@ class ZigAlarmPanel extends HTMLElement {
 
   _render() {
     this._root = this.attachShadow({ mode: "open" });
+    // Default tab
+    this._activeTab = "dashboard";
+
     this._root.innerHTML = `
       <style>
         :host {
           display: block;
           height: 100%;
-          --za-bg-body: #0f172a; /* Slate 900 */
-          --za-bg-card: rgba(15, 23, 42, 0.6);
-          --za-primary: #3b82f6; 
-          --za-primary-glow: rgba(59, 130, 246, 0.5);
+          --za-bg-body: #0b0c15; /* Deep dark slate */
+          --za-bg-card: rgba(20, 24, 35, 0.7);
+          --za-primary: #0ea5e9; /* Cyan 500 */
+          --za-accent: #8b5cf6; /* Violet 500 */
           --za-success: #10b981;
-          --za-success-glow: rgba(16, 185, 129, 0.5);
           --za-danger: #ef4444; 
-          --za-danger-glow: rgba(239, 68, 68, 0.5);
           --za-text: #f8fafc;
           --za-text-muted: #94a3b8;
           --za-border: rgba(255, 255, 255, 0.08);
-          font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+          font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
           color: var(--za-text);
-          --card-background-color: transparent;
         }
 
-        /* Animated Background Gradient */
-        .wrap {
-          padding: 40px 24px;
-          max-width: 1100px;
-          margin: 0 auto;
-          box-sizing: border-box;
-          position: relative;
-          z-index: 1;
-        }
-        
-        .wrap::before {
-          content: '';
-          position: fixed;
-          top: -50%; left: -50%; width: 200%; height: 200%;
-          background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08), transparent 60%),
-                      radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.08), transparent 40%);
-          z-index: -1;
-          pointer-events: none;
-          animation: aurora 20s linear infinite;
-        }
-
-        @keyframes aurora {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        /* Header & Status Hero */
-        .head {
+        /* Animated Grid Background */
+        .app-container {
+          min-height: 100%;
+          background: 
+            linear-gradient(rgba(11, 12, 21, 0.95), rgba(11, 12, 21, 0.95)),
+            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+          background-size: 100% 100%, 40px 40px, 40px 40px;
           display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          gap: 20px;
-          margin-bottom: 40px;
-          padding-bottom: 20px;
-          border-bottom: 1px solid var(--za-border);
+          flex-direction: column;
         }
 
-        .title {
-          font-size: 2.5rem;
-          font-weight: 800;
+        /* Navbar */
+        .navbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 40px;
+          height: 80px;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+          background: rgba(11, 12, 21, 0.8);
+          backdrop-filter: blur(10px);
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-size: 1.5rem;
+          font-weight: 900;
           letter-spacing: -0.02em;
-          background: linear-gradient(to right, #fff, #94a3b8);
+          background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
-          margin-bottom: 6px;
-        }
-
-        .sub {
-          color: var(--za-text-muted);
-          font-size: 1.1rem;
-          font-weight: 500;
-        }
-
-        /* Big Status Badge */
-        .pill {
-          padding: 10px 24px;
-          border-radius: 16px;
-          font-weight: 800;
-          font-size: 0.9rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-          border: 1px solid var(--za-border);
-          background: rgba(255,255,255,0.05);
-          box-shadow: 0 0 0 0 rgba(0,0,0,0);
-          text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-          position: relative;
-          overflow: hidden;
         }
         
-        /* Status States */
-        /* Armed (Green/Blue) */
-        .pill[data-state*="armed"] {
-          background: rgba(16, 185, 129, 0.15);
-          border-color: rgba(16, 185, 129, 0.4);
-          color: #6ee7b7;
-          box-shadow: 0 0 20px var(--za-success-glow);
-        }
-        /* Disarmed (Gray/Muted) */
-        .pill[data-state="disarmed"] {
-          background: rgba(255,255,255,0.05);
-          color: #94a3b8;
-          border-color: rgba(255,255,255,0.1);
-        }
-        /* Triggered (Red Alert) */
-        .pill[data-state="triggered"] {
-          background: rgba(239, 68, 68, 0.2);
-          border-color: rgba(239, 68, 68, 0.6);
-          color: #fca5a5;
-          animation: pulse-danger 1.5s infinite;
-        }
-        /* Pending (Orange) */
-        .pill[data-state="pending"], .pill[data-state="arming"] {
-          background: rgba(245, 158, 11, 0.15);
-          border-color: rgba(245, 158, 11, 0.4);
-          color: #fcd34d;
+        .brand span {
+           background: linear-gradient(to right, var(--za-primary), var(--za-accent));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
 
-        @keyframes pulse-danger {
-          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-          70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        .nav-tabs {
+          display: flex;
+          gap: 8px;
+          background: rgba(255,255,255,0.03);
+          padding: 6px;
+          border-radius: 12px;
+          border: 1px solid var(--za-border);
+        }
+
+        .nav-item {
+          padding: 10px 24px;
+          border-radius: 8px;
+          color: var(--za-text-muted);
+          font-weight: 700;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: all 0.3s;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          background: transparent;
+          border: none;
+        }
+
+        .nav-item:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .nav-item.active {
+          background: var(--za-primary);
+          color: #fff;
+          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+        }
+
+        /* Content Area */
+        .main-content {
+          flex: 1;
+          padding: 40px;
+          max-width: 1200px;
+          width: 100%;
+          margin: 0 auto;
+          box-sizing: border-box;
+        }
+
+        /* Tab Views */
+        .tab-view { display: none; animation: fadeIn 0.4s ease; }
+        .tab-view.active { display: block; }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         /* Cards */
@@ -221,378 +211,306 @@ class ZigAlarmPanel extends HTMLElement {
           padding: 32px;
           border-radius: 24px;
           border: 1px solid var(--za-border);
-          background: linear-gradient(145deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8));
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          background: var(--za-bg-card);
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-          transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+          margin-bottom: 24px;
         }
-
-        .card:hover {
-          transform: translateY(-4px);
-          border-color: rgba(255, 255, 255, 0.15);
-          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05);
-        }
-
-        .grid2 {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-          gap: 24px;
-        }
-
-        /* Buttons */
-        .btn {
-          padding: 14px 28px;
-          border-radius: 16px;
-          border: 1px solid rgba(255,255,255,0.1);
-          background: rgba(255,255,255,0.03);
-          color: var(--za-text);
-          font-weight: 700;
-          font-size: 0.95rem;
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          letter-spacing: 0.02em;
-        }
-        .btn:hover {
-          background: rgba(255,255,255,0.08);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        .btn:active { transform: translateY(0); }
-
-        .btn.primary {
-          background: linear-gradient(135deg, var(--za-primary) 0%, #2563eb 100%);
-          border: none;
-          color: white;
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-          position: relative;
-          overflow: hidden;
-        }
-        .btn.primary::after {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; width: 100%; height: 100%;
-          background: linear-gradient(rgba(255,255,255,0.2), transparent);
-          opacity: 0; transition: opacity 0.2s;
-        }
-        .btn.primary:hover::after { opacity: 1; }
-        .btn.primary:hover {
-          box-shadow: 0 8px 24px var(--za-primary-glow);
-        }
-
-        .btn.danger {
-          background: rgba(239, 68, 68, 0.1);
-          border-color: rgba(239, 68, 68, 0.3);
-          color: #fca5a5;
-        }
-        .btn.danger:hover {
-          background: rgba(239, 68, 68, 0.2);
-          box-shadow: 0 8px 24px var(--za-danger-glow);
-          color: #fff;
-        }
-
-        /* Section Titles */
-        .secTitle {
-          font-weight: 800;
-          font-size: 1.35rem;
-          margin-bottom: 8px;
-          color: #f1f5f9;
+        
+        /* Dashboard Specifics */
+        .dash-hero {
           display: flex;
           align-items: center;
-          gap: 12px;
+          justify-content: space-between;
+          margin-bottom: 32px;
         }
-        .secTitle::before {
-          content: '';
-          display: block;
-          width: 6px;
-          height: 24px;
-          background: linear-gradient(to bottom, var(--za-primary), #60a5fa);
-          border-radius: 4px;
-          box-shadow: 0 0 16px var(--za-primary);
-        }
-
-        .muted { color: var(--za-text-muted); font-size: 0.95rem; line-height: 1.6; }
-
-        /* Chips & Pickers */
-        .pickRow { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 12px; }
         
-        .pickBtn {
-          width: 100%; text-align: left; padding: 16px;
+        .pill-hero {
+          padding: 12px 24px;
           border-radius: 16px;
+          font-weight: 800;
+          font-size: 1rem;
+          text-transform: uppercase;
           border: 1px solid var(--za-border);
-          background: rgba(0, 0, 0, 0.2);
+          background: rgba(255,255,255,0.05);
+          letter-spacing: 0.05em;
+        }
+        .pill-hero[data-state*="armed"] {
+          background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+        .pill-hero[data-state="triggered"] {
+          background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.6); color: #fca5a5; animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 15px transparent; } }
+
+        /* General UI Elements */
+        .btn {
+          padding: 14px 28px;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid var(--za-border);
           color: var(--za-text);
-          cursor:pointer;
-          font-family: inherit; font-weight: 500;
+          font-weight: 700;
+          cursor: pointer;
           transition: all 0.2s;
         }
-        .pickBtn:hover { border-color: rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); }
-
-        .btnAdd {
-          padding: 16px 24px; border-radius: 16px;
-          border: 1px solid var(--za-border); background: rgba(255,255,255,0.05);
-          color: white; font-weight: 700; cursor: pointer; transition: all 0.2s;
+        .btn:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+        
+        .btn.primary {
+          background: var(--za-primary);
+          border: none;
+          color: #fff;
+          box-shadow: 0 4px 16px rgba(14, 165, 233, 0.3);
         }
-        .btnAdd:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+        .btn.primary:hover { box-shadow: 0 8px 24px rgba(14, 165, 233, 0.5); }
+        
+        .btn.danger {
+          background: rgba(239, 68, 68, 0.1);
+          border-color: rgba(239, 68, 68, 0.5);
+          color: #fca5a5;
+        }
+        .btn.danger:hover { background: rgba(239, 68, 68, 0.2); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); color: #fff; }
 
+        .secTitle {
+          font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 24px;
+          padding-left: 16px; border-left: 4px solid var(--za-primary);
+        }
+
+        .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; }
+        
+        ha-textfield, ha-switch { width: 100%; display:block; margin-bottom: 12px; }
+        
+        .muted { color: var(--za-text-muted); font-size: 0.9rem; line-height: 1.6; }
+        
+        .footer {
+          text-align: center;
+          padding: 40px;
+          color: var(--za-text-muted);
+          font-size: 0.9rem;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          opacity: 0.6;
+        }
+        
+        /* Pickers from before */
+        .pickRow { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 12px; }
+        .pickBtn {
+          width: 100%; text-align: left; padding: 16px; border-radius: 12px;
+          border: 1px solid var(--za-border); background: rgba(0, 0, 0, 0.2); color: var(--za-text);
+          cursor:pointer; font-weight: 600; transition: all 0.2s;
+        }
+        .pickBtn:hover { border-color: var(--za-primary); background: rgba(0,0,0,0.4); }
+        .btnAdd {
+          padding: 16px 24px; border-radius: 12px; border: 1px solid var(--za-border);
+          background: rgba(255,255,255,0.05); color: white; font-weight: 700; cursor: pointer; transition: all 0.2s;
+        }
+        .btnAdd:hover { background: rgba(255,255,255,0.1); }
+        
         .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
         .chip {
-          display: flex; align-items: center; gap: 10px;
-          padding: 8px 16px; border-radius: 99px;
-          background: rgba(59, 130, 246, 0.1);
-          border: 1px solid rgba(59, 130, 246, 0.2);
-          color: #bae6fd; font-weight: 600; font-size: 0.9rem;
-          transition: all 0.2s;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          padding: 8px 16px; border-radius: 99px; background: rgba(14, 165, 233, 0.1);
+          border: 1px solid rgba(14, 165, 233, 0.3); color: #bae6fd; font-weight: 600;
+          display: flex; align-items: center; gap: 8px; font-size: 0.85rem;
         }
-        .chip:hover {
-          background: rgba(59, 130, 246, 0.2);
-          border-color: rgba(59, 130, 246, 0.5);
-          box-shadow: 0 0 12px rgba(59,130,246,0.3);
-          transform: scale(1.02);
-        }
-        .chip button {
-          background: rgba(0,0,0,0.2); border:none; color:white;
-          border-radius: 50%; width: 22px; height: 22px;
-          display:flex; align-items:center; justify-content:center;
-          cursor:pointer; transition:all 0.2s; font-size: 12px;
-        }
-        .chip button:hover { background: rgba(239,68,68,0.8); transform: rotate(90deg); }
+        .chip button { background:none; border:none; color:inherit; cursor:pointer; font-weight:900; }
 
         /* Modal */
         .modalBack {
-          position: fixed; inset: 0;
-          background: rgba(0, 0, 0, 0.8);
-          backdrop-filter: blur(12px);
-          display: none; align-items: center; justify-content: center;
-          z-index: 9999; opacity: 0; transition: opacity 0.3s ease;
+          position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+          display: none; align-items: center; justify-content: center; z-index: 1000;
         }
-        .modalBack.open { display: flex; opacity: 1; }
-
+        .modalBack.open { display: flex; }
         .modal {
-          width: min(760px, calc(100vw - 32px));
-          max-height: min(85vh, 800px);
-          border-radius: 28px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: #0f172a;
-          box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.7);
-          display: flex; flex-direction: column;
-          transform: scale(0.9) translateY(20px);
-          transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-          overflow: hidden;
+          width: 600px; max-height: 80vh; background: #1a1b23; border: 1px solid var(--za-border);
+          border-radius: 24px; display: flex; flex-direction: column; overflow: hidden;
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
-        .modalBack.open .modal { transform: scale(1) translateY(0); }
-
-        .modalHead {
-          padding: 24px 32px;
-          display: flex; justify-content: space-between; align-items: center;
-          border-bottom: 1px solid var(--za-border);
-          background: rgba(255,255,255,0.02);
-        }
-        .modalTitle { font-weight: 800; font-size: 1.5rem; letter-spacing: -0.02em; }
-        
-        .modalBody { padding: 32px; overflow-y: auto; }
-
+        .modalHead { padding: 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--za-border); }
+        .modalBody { padding: 24px; overflow-y: auto; }
         .search {
-          width: 100%; padding: 18px 22px;
-          border-radius: 18px; border: 1px solid var(--za-border);
-          background: rgba(0, 0, 0, 0.3); color: #fff;
-          font-size: 1.1rem; outline: none; transition: all 0.2s;
+          width: 100%; padding: 16px; border-radius: 12px; border: 1px solid var(--za-border);
+          background: rgba(0,0,0,0.3); color: #fff; font-size: 1rem; outline: none;
         }
-        .search:focus {
-          border-color: var(--za-primary);
-          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
-          background: rgba(0, 0, 0, 0.4);
-        }
-
-        .list { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
-
-        .item {
-          padding: 16px 20px; border-radius: 16px;
-          border: 1px solid transparent; background: rgba(255, 255, 255, 0.03);
-          cursor: pointer; display: flex; flex-direction: column; gap: 4px;
-          transition: all 0.2s;
-        }
-        .item:hover {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: rgba(255, 255, 255, 0.1);
-          transform: translateX(6px);
-        }
-        .item .name { font-weight: 700; color: #f1f5f9; font-size: 1.05rem; }
-        .item .eid { opacity: 0.5; font-size: 0.85rem; font-family: monospace; }
-        
-        .modalFoot {
-          padding: 24px 32px; border-top: 1px solid var(--za-border);
-          display: flex; justify-content: space-between; align-items: center;
-          background: rgba(255,255,255,0.02);
-        }
-
-        .row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
-        .rowRight { display: flex; gap: 12px; justify-content: flex-end; }
-        
-        ha-textfield, ha-switch { width: 100%; }
-        
-        .hint {
-          padding: 20px; border-radius: 16px;
-          background: rgba(59, 130, 246, 0.05);
-          border: 1px dashed rgba(59, 130, 246, 0.3);
-          color: #94a3b8; font-size: 0.95rem;
-          display: flex; align-items: center; gap: 12px;
-        }
+        .list { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+        .item { padding: 12px 16px; background: rgba(255,255,255,0.05); border-radius: 12px; cursor: pointer; }
+        .item:hover { background: rgba(255,255,255,0.1); }
+        .modalFoot { padding: 20px; border-top: 1px solid var(--za-border); display: flex; justify-content: flex-end; gap: 10px; }
       </style>
 
-      <div class="wrap">
-        <div class="head">
-          <div>
-            <div class="title">ZigAlarm</div>
-            <div class="sub">Konfiguration</div>
+      <div class="app-container">
+        <!-- Navbar -->
+        <div class="navbar">
+          <div class="brand">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--za-primary)"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <div>ZIG<span>ALARM</span></div>
           </div>
-          <div class="pill" id="statePill">-</div>
+          <div class="nav-tabs">
+            <button class="nav-item active" data-tab="dashboard">Übersicht</button>
+            <button class="nav-item" data-tab="settings">Geräte & Config</button>
+            <button class="nav-item" data-tab="info">Info / Hilfe</button>
+          </div>
         </div>
 
-        <div class="card">
-          <div class="row" style="justify-content:space-between;">
-            <div style="min-width: 320px; flex: 1;">
-              <div class="muted" style="margin-bottom: 6px;">ZigAlarm Alarm-Entität (alarm_control_panel.*)</div>
-              <select id="alarmEntitySel" class="search"></select>
-              <div class="muted" style="margin-top:6px;">
-                Wähle dein ZigAlarm-Panel aus. Danach kannst du alles hier konfigurieren.
+        <!-- Main Content -->
+        <div class="main-content">
+          
+          <!-- TAB: Dashboard -->
+          <div id="tab-dashboard" class="tab-view active">
+            <div class="dash-hero">
+              <div>
+                <h1 style="margin:0; font-size:2rem; font-weight:800;">Mein Dashboard</h1>
+                <div class="muted">Live Status & Steuerung</div>
+              </div>
+              <div class="pill-hero" id="statePill">-</div>
+            </div>
+
+            <!-- Alarm Entity Selection (Hidden here but needed for logic, kept minimal) -->
+            <div style="margin-bottom: 24px; display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03); padding:12px; border-radius:12px; width:fit-content;">
+               <div style="font-size:0.9rem; color:var(--za-text-muted);">Aktives System:</div>
+               <select id="alarmEntitySel" style="background:transparent; border:none; color:#fff; font-weight:700; outline:none; cursor:pointer;"><option>Lade...</option></select>
+            </div>
+
+            <div class="card">
+               <div class="secTitle">Steuerung</div>
+               <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                 <button class="btn" id="btnHome" style="flex:1;">Zuhause</button>
+                 <button class="btn" id="btnAway" style="flex:1;">Abwesend</button>
+                 <button class="btn" id="btnDisarm" style="flex:1;">Unscharf</button>
+                 <button class="btn danger" id="btnTrigger" style="flex:1;">ALARM</button>
+               </div>
+               <div class="muted" id="readyLine" style="margin-top:16px; text-align:center;"></div>
+            </div>
+
+            <div class="grid2">
+              <div class="card">
+                <div class="secTitle">Status</div>
+                <div class="muted" id="statusLine"></div>
+                <div class="muted" id="openSensorsText" style="margin-top:12px;"></div>
+              </div>
+              <!-- Placeholder for camera preview or quick stats -->
+              <div class="card" style="display:flex; align-items:center; justify-content:center; border-style:dashed; opacity:0.5;">
+                 <div class="muted">Kamera Preview (optional)</div>
               </div>
             </div>
-
-            <div class="rowRight">
-              <button class="btn" id="reload">Aktualisieren</button>
-              <button class="btn primary" id="save">Speichern</button>
-            </div>
           </div>
 
-          <div style="height: 10px;"></div>
+          <!-- TAB: Settings -->
+          <div id="tab-settings" class="tab-view">
+             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
+                <h1 style="margin:0;">Konfiguration</h1>
+                <div style="display:flex; gap:12px;">
+                  <button class="btn" id="reload">Reload</button>
+                  <button class="btn primary" id="save">Speichern</button>
+                </div>
+             </div>
 
-          <div class="row" style="justify-content:space-between;">
-            <div class="row" style="gap:10px;">
-              <button class="btn" id="btnHome">Zuhause scharf</button>
-              <button class="btn" id="btnAway">Abwesend scharf</button>
-              <button class="btn" id="btnDisarm">Unscharf</button>
-              <button class="btn danger" id="btnTrigger">Alarm auslösen</button>
-            </div>
-            <div class="muted" id="readyLine"></div>
+             <div class="grid2">
+                <div class="card">
+                  <div class="secTitle">Sensoren</div>
+                  <div class="muted" style="margin-bottom:16px;">Definiere, welche Sensoren den Alarm auslösen.</div>
+                  ${this._pickerHtml("perimeter", "Außenhaut (Tür/Fenster)")}
+                  <div style="height:20px;"></div>
+                  ${this._pickerHtml("motion", "Bewegung (Innen)")}
+                  <div style="height:20px;"></div>
+                  ${this._pickerHtml("always", "24/7 (Rauch / Wasser)")}
+                </div>
+
+                <div>
+                   <div class="card">
+                      <div class="secTitle">Zeiten</div>
+                      <ha-textfield id="exitDelay" type="number" label="Ausgangsverzögerung (s)"></ha-textfield>
+                      <ha-textfield id="entryDelay" type="number" label="Eingangsverzögerung (s)"></ha-textfield>
+                      <ha-textfield id="triggerTime" type="number" label="Alarmdauer (s)"></ha-textfield>
+                   </div>
+                   
+                   <div class="card">
+                      <div class="secTitle">Ausgänge</div>
+                      <div class="pickRow">
+                        <button class="pickBtn" id="sirenPick">Sirene wählen...</button>
+                        <button class="btnAdd" id="sirenClear">X</button>
+                      </div>
+                      <div class="chips" id="sirenChips"></div>
+                      <div style="height:20px;"></div>
+                      ${this._pickerHtml("alarmLights", "Alarm-Lichter")}
+                      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+                         <ha-textfield id="lightColor" label="Farbe (#RRGGBB)"></ha-textfield>
+                         <ha-textfield id="lightBrightness" type="number" label="Helligkeit (1-255)"></ha-textfield>
+                      </div>
+                      <ha-textfield id="lightEffect" label="Lichteffekt" style="margin-top:12px;"></ha-textfield>
+                      <div style="margin-top:12px; display:flex; gap:12px; align-items:center;">
+                         <ha-switch id="lightRestore"></ha-switch>
+                         <div class="muted">Licht wiederherstellen</div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+             
+             <div class="card">
+               <div class="secTitle">Kameras</div>
+               ${this._pickerHtml("cams", "Kameras verknüpfen")}
+               <div style="margin-top:16px; display:flex; gap:12px; align-items:center;">
+                  <ha-switch id="camOnlyTrig"></ha-switch>
+                  <div class="muted">Nur bei Alarm anzeigen</div>
+               </div>
+             </div>
           </div>
 
-          <div class="hint" id="hintLine">Panel lädt…</div>
-        </div>
-
-        <div style="height: 12px;"></div>
-
-        <div class="grid2">
-          <div class="card">
-            <div class="secTitle">Sensoren</div>
-            <div class="muted">Außen/Bewegung/24-7. Leere Auswahl löscht die Liste.</div>
-
-            <div style="margin-top: 12px;">
-              ${this._pickerHtml("perimeter", "Außen(Tür/Fenster / Perimeter)")}
-              <div style="height: 12px;"></div>
-              ${this._pickerHtml("motion", "Bewegung (PIR / Motion)")}
-              <div style="height: 12px;"></div>
-              ${this._pickerHtml("always", "24/7 (Rauch/Wasser/Tamper)")}
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="secTitle">Zeiten</div>
-            <div class="muted">Ein-/Ausgangsverzögerung und Alarmdauer.</div>
-            <div class="grid2" style="margin-top: 10px;">
-              <ha-textfield id="exitDelay" type="number" label="Ausgangsverzögerung (s)"></ha-textfield>
-              <ha-textfield id="entryDelay" type="number" label="Eingangsverzögerung (s)"></ha-textfield>
-            </div>
-            <div style="margin-top: 10px;">
-              <ha-textfield id="triggerTime" type="number" label="Alarmdauer (s)"></ha-textfield>
-            </div>
-          </div>
-        </div>
-
-        <div style="height: 12px;"></div>
-
-        <div class="grid2">
-          <div class="card">
-            <div class="secTitle">Ausgänge</div>
-            <div class="muted">Sirene und Alarm-Lichter.</div>
-
-            <div style="margin-top: 10px;">
-              <div class="muted">Sirene (optional)</div>
-              <div class="pickRow">
-                <button class="pickBtn" id="sirenPick">Entität auswählen…</button>
-                <button class="btnAdd" id="sirenClear">Leeren</button>
+          <!-- TAB: Info -->
+          <div id="tab-info" class="tab-view">
+            <div class="card" style="text-align:center; padding:60px;">
+              <h1 class="brand" style="justify-content:center; font-size:3rem; margin-bottom:20px;">ZIG<span>ALARM</span></h1>
+              <div class="muted">Version 2.0.0 • Premium Edition</div>
+              <div style="margin-top:40px;">
+                <p class="muted">Entwickelt für Home Assistant.</p>
+                <div class="hint" id="hintLine" style="margin: 20px auto; max-width:400px;">System bereit.</div>
               </div>
-              <div class="chips" id="sirenChips"></div>
-
-              <div style="height: 12px;"></div>
-              ${this._pickerHtml("alarmLights", "Alarm-Lichter (light.*)")}
-
-              <div style="height: 12px;"></div>
-              <div class="grid2">
-                <ha-textfield id="lightColor" label="Farbe (Hex, z.B. #ff0000)"></ha-textfield>
-                <ha-textfield id="lightBrightness" type="number" label="Helligkeit (1..255)"></ha-textfield>
-              </div>
-              <div style="height: 10px;"></div>
-              <ha-textfield id="lightEffect" label="Effekt (optional)"></ha-textfield>
-              <div style="height: 10px;"></div>
-              <ha-switch id="lightRestore"></ha-switch>
-              <div class="muted">Lichtzustände bei Unscharf wiederherstellen</div>
             </div>
           </div>
 
-          <div class="card">
-            <div class="secTitle">Kameras</div>
-            <div class="muted">Optional: Kameras verknüpfen.</div>
-
-            <div style="margin-top: 12px;">
-              ${this._pickerHtml("cams", "Kameras (camera.*)")}
-
-              <div style="height: 10px;"></div>
-              <ha-switch id="camOnlyTrig"></ha-switch>
-              <div class="muted">Nur bei Alarm (Trigger) anzeigen</div>
-
-              <div class="muted" id="openSensorsText" style="margin-top: 8px;"></div>
-            </div>
-          </div>
         </div>
 
-        <div style="height: 14px;"></div>
-        <div class="muted" id="statusLine"></div>
-      </div>
+        <div class="footer">Powered by ZIGALARM</div>
 
-      <!-- Modal Picker -->
-      <div class="modalBack" id="pickerBack" aria-hidden="true">
-        <div class="modal" role="dialog" aria-modal="true">
-          <div class="modalHead">
-            <div>
-              <div class="modalTitle" id="pickerTitle">Entität auswählen</div>
-              <div class="kBadge" id="pickerHint"></div>
-            </div>
-            <div class="rowRight">
-              <button class="btn" id="pickerClose">Schließen</button>
-            </div>
-          </div>
-          <div class="modalBody">
-            <input id="pickerSearch" class="search" type="text" placeholder="Suchen (Name oder entity_id)…" />
-            <div class="list" id="pickerList"></div>
-          </div>
-          <div class="modalFoot">
-            <div class="muted" id="pickerCount"></div>
-            <div class="rowRight">
-              <button class="btn" id="pickerClear">Leeren</button>
-              <button class="btn primary" id="pickerDone">Fertig</button>
-            </div>
-          </div>
+        <!-- Modals placed here -->
+        <div class="modalBack" id="pickerBack">
+           <div class="modal">
+             <div class="modalHead">
+               <div class="modalTitle" id="pickerTitle">Auswählen</div>
+               <div class="rowRight"><button class="btn" id="pickerClose">Schließen</button></div>
+             </div>
+             <div class="modalBody">
+                <input class="search" id="pickerSearch" placeholder="Suche..." />
+                <div class="muted" id="pickerHint" style="margin-top:10px;"></div>
+                <div class="list" id="pickerList"></div>
+             </div>
+             <div class="modalFoot">
+               <div class="muted" id="pickerCount" style="margin-right:auto;"></div>
+               <button class="btn" id="pickerClear">Leeren</button>
+               <button class="btn primary" id="pickerDone">Fertig</button>
+             </div>
+           </div>
         </div>
       </div>
     `;
 
-    // Defaults
-    if (!this._panelSelections) this._panelSelections = {};
-    this._currentPick = { key: null, multi: true, domains: [], title: "" };
+    // --- Logic for Tabs ---
+    this.shadowRoot.querySelectorAll(".nav-item").forEach(btn => {
+      btn.addEventListener("click", () => {
+        // UI toggle
+        this.shadowRoot.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
 
-    // Buttons
+        // View toggle
+        const tabId = btn.getAttribute("data-tab");
+        this.shadowRoot.querySelectorAll(".tab-view").forEach(view => {
+          view.classList.remove("active");
+          if (view.id === `tab-${tabId}`) view.classList.add("active");
+        });
+        this._activeTab = tabId;
+      });
+    });
+
+    // Re-attach existing event listeners for generic elements...
     this._$("reload").addEventListener("click", () => this._update());
     this._$("save").addEventListener("click", () => this._save());
 
@@ -608,13 +526,13 @@ class ZigAlarmPanel extends HTMLElement {
     this._$("btnTrigger").addEventListener("click", () => this._trigger());
 
     // Picker hooks
-    this._hookPicker("perimeter", ["binary_sensor", "sensor", "event"], true, "Außenhaut (Perimeter) – Entität auswählen");
-    this._hookPicker("motion", ["binary_sensor", "sensor", "event"], true, "Bewegung (Motion) – Entität auswählen");
-    this._hookPicker("always", ["binary_sensor", "sensor", "event"], true, "24/7 – Entität auswählen");
-    this._hookPicker("alarmLights", ["light"], true, "Alarm-Lichter – Entität auswählen");
-    this._hookPicker("cams", ["camera"], true, "Kameras – Entität auswählen");
+    this._hookPicker("perimeter", ["binary_sensor", "sensor", "event"], true, "Außenhaut (Perimeter)");
+    this._hookPicker("motion", ["binary_sensor", "sensor", "event"], true, "Bewegung (Motion)");
+    this._hookPicker("always", ["binary_sensor", "sensor", "event"], true, "24/7 Sensoren");
+    this._hookPicker("alarmLights", ["light"], true, "Alarm-Lichter");
+    this._hookPicker("cams", ["camera"], true, "Kameras");
 
-    // Siren is single
+    // Siren
     this._$("sirenPick").addEventListener("click", () => {
       this._openPicker({
         key: "siren",
@@ -638,7 +556,6 @@ class ZigAlarmPanel extends HTMLElement {
     this._$("pickerSearch").addEventListener("keydown", (e) => {
       if (e.key === "Escape") this._closePicker();
       if (e.key === "Enter") {
-        // select first visible item
         const first = this._root.querySelector(".item[data-eid]");
         if (first) first.click();
       }
@@ -928,9 +845,9 @@ class ZigAlarmPanel extends HTMLElement {
     const readyLine = this._$("readyLine");
 
     if (!selected || !st) {
-      if (pill) pill.textContent = "KEINE ENTITÄT";
-      this._setHint("Kein ZigAlarm alarm_control_panel gefunden. Integration/Entity prüfen.");
-      if (status) status.textContent = "Tipp: Entwicklerwerkzeuge → Zustände → alarm_control_panel.zigalarm";
+      if (pill) pill.textContent = "OFFLINE";
+      this._setHint("Kein ZigAlarm System gefunden.");
+      if (status) status.textContent = "Bitte Integration prüfen.";
       if (readyLine) readyLine.textContent = "";
       return;
     }
@@ -942,10 +859,16 @@ class ZigAlarmPanel extends HTMLElement {
     }
 
     // Ready indicator (de)
-    const ready = (a.ready_to_arm_home && a.ready_to_arm_away) ? "Bereit zum Scharfschalten ✅" : "Nicht bereit ⚠️";
-    if (readyLine) readyLine.textContent = ready;
+    const ready = (a.ready_to_arm_home && a.ready_to_arm_away)
+      ? "SYSTEM BEREIT - ALLES OK"
+      : "WARNUNG - SENSOREN OFFEN";
 
-    this._setHint("Entität gefunden ✅");
+    if (readyLine) {
+      readyLine.textContent = ready;
+      readyLine.style.color = (a.ready_to_arm_home && a.ready_to_arm_away) ? "var(--za-success)" : "var(--za-danger)";
+    }
+
+    this._setHint("System online und verbunden.");
 
     // Init selections from entity attributes only once (when empty)
     const ensure = (k, def) => {
@@ -997,9 +920,15 @@ class ZigAlarmPanel extends HTMLElement {
     // open sensors
     const open = a.open_sensors || [];
     const openText = this._$("openSensorsText");
-    if (openText) openText.textContent = open.length ? `Offen gerade: ${open.join(", ")}` : "Offen gerade: keine";
+    if (openText) {
+      if (open.length > 0) {
+        openText.innerHTML = `<span style="color:var(--za-danger)">OFFENE SENSOREN:</span> <br/>${open.join(", ")}`;
+      } else {
+        openText.innerHTML = `<span style="color:var(--za-success)">ALLE SENSOREN GESCHLOSSEN</span>`;
+      }
+    }
 
-    if (status) status.textContent = `Aktiv: ${selected} | gefunden: ${alarmList.length}`;
+    if (status) status.textContent = `Verbunden mit ${selected}`;
   }
 
   async _save() {
