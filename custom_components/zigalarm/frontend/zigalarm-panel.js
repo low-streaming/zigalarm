@@ -469,7 +469,25 @@ class ZigAlarmPanel extends HTMLElement {
 
         </div>
 
-        <div class="footer">powered by openKAIRO.de</div>
+        .footer a {
+          color: var(--za-primary);
+          text-decoration: none;
+          font-weight: 800;
+          text-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+          transition: all 0.2s;
+        }
+        .footer a:hover {
+          color: #fff;
+          text-shadow: 0 0 15px var(--za-primary);
+        }
+      </style>
+
+      <div class="app-container">
+        <!-- ... (navbar code is unchanged) ... -->
+        
+        <!-- ... (main content code is unchanged) ... -->
+
+        <div class="footer">Powered by <a href="https://openkairo.de" target="_blank">OPENKAIRO</a></div>
 
         <!-- Modals placed here -->
         <div class="modalBack" id="pickerBack">

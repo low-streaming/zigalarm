@@ -196,8 +196,20 @@ class ZigAlarmCard extends HTMLElement {
         .setup { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--za-border); position: relative; z-index: 2; }
         
         .footer-card {
-           margin-top: 16px; text-align: center; font-size: 0.65rem; color: var(--za-text-muted); 
-           opacity: 0.5; letter-spacing: 0.05em; text-transform: uppercase; position: relative; z-index: 2;
+           margin-top: 16px; text-align: center; font-size: 0.7rem; color: var(--za-text-muted); 
+           opacity: 0.8; letter-spacing: 0.05em; position: relative; z-index: 2;
+        }
+        .footer-card a {
+          color: var(--za-primary);
+          text-decoration: none;
+          font-weight: 800;
+          text-shadow: 0 0 8px rgba(14, 165, 233, 0.4);
+          transition: all 0.2s;
+          text-transform: uppercase;
+        }
+        .footer-card a:hover {
+          color: #fff;
+          text-shadow: 0 0 12px var(--za-primary);
         }
         
         /* Modal Popup Styles remain similar but darkened */
@@ -207,6 +219,32 @@ class ZigAlarmCard extends HTMLElement {
           background: #1a1b23; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
           color: #fff; overflow: hidden;
         }
+        /* Alarm Flash Animation */
+        ha-card.triggered {
+          animation: alarm-flash 1s infinite;
+          border-color: var(--za-danger);
+        }
+        @keyframes alarm-flash {
+          0% { box-shadow: inset 0 0 0 rgba(239, 68, 68, 0); }
+          50% { box-shadow: inset 0 0 50px rgba(239, 68, 68, 0.5); }
+          100% { box-shadow: inset 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Trigger Info in Popup */
+        .trig-info {
+          background: rgba(239, 68, 68, 0.15);
+          border: 1px solid rgba(239, 68, 68, 0.5);
+          color: #fca5a5;
+          padding: 16px;
+          border-radius: 12px;
+          margin-bottom: 20px;
+          text-align: center;
+          font-weight: 700;
+          font-size: 1.1rem;
+          display: flex; flex-direction: column; gap: 4px;
+        }
+        .trig-label { font-size: 0.8rem; text-transform: uppercase; opacity: 0.8; letter-spacing: 0.1em; }
+        .trig-val { color: #fff; font-size: 1.2rem; }
         dialog::backdrop { background: rgba(0,0,0,.8); backdrop-filter: blur(5px); }
         .dlg-head { padding: 16px 20px; border-bottom: 1px solid var(--za-border); display: flex; justify-content: space-between; align-items: center; }
         .dlg-title { font-weight: 700; }
@@ -297,9 +335,19 @@ class ZigAlarmCard extends HTMLElement {
   }
 
   async _openCameraPopup(attrs) {
-    const cams = this._getCameras(attrs);
-    if (!cams.length) return;
+    // Determine trigger source
+    const trigEid = attrs.last_trigger_entity;
+    let trigName = "Unbekannt";
+    if (trigEid && this._hass.states[trigEid]) {
+      const a = this._hass.states[trigEid].attributes;
+      trigName = a.friendly_name || trigEid;
+    } else if (trigEid) {
+      trigName = trigEid;
+    }
 
+    const cams = this._getCameras(attrs);
+
+    // Popup logic
     if (!this._popup) {
       const dlg = document.createElement("dialog");
       dlg.className = "zigalarm-popup";
@@ -310,6 +358,7 @@ class ZigAlarmCard extends HTMLElement {
           <button class="dlg-close" type="button">✕</button>
         </div>
         <div class="dlg-body">
+          <div class="dlg-info"></div>
           <div class="dlg-cards"></div>
         </div>
       `;
@@ -319,20 +368,40 @@ class ZigAlarmCard extends HTMLElement {
         this._popupOpenedFor = null;
         const box = dlg.querySelector(".dlg-cards");
         box.innerHTML = "";
+        const infoBox = dlg.querySelector(".dlg-info");
+        infoBox.innerHTML = "";
       });
 
       document.body.appendChild(dlg);
       this._popup = dlg;
     }
 
-    this._popup.querySelector(".dlg-title").textContent = this._config.popup_title || "Alarm-Kameras";
+    this._popup.querySelector(".dlg-title").textContent = "ALARM AUSGELÖST!";
+
+    // Show Trigger Info
+    const infoBox = this._popup.querySelector(".dlg-info");
+    if (trigEid) {
+      infoBox.innerHTML = `
+        <div class="trig-info">
+           <span class="trig-label">Auslöser</span>
+           <span class="trig-val">${trigName}</span>
+        </div>
+      `;
+    } else {
+      infoBox.innerHTML = "";
+    }
 
     const box = this._popup.querySelector(".dlg-cards");
     box.innerHTML = "";
-    const camCard = await this._buildCameraCardElement(cams);
-    if (camCard) {
-      box.appendChild(camCard);
-      camCard.hass = this._hass;
+
+    if (cams.length > 0) {
+      const camCard = await this._buildCameraCardElement(cams);
+      if (camCard) {
+        box.appendChild(camCard);
+        camCard.hass = this._hass;
+      }
+    } else {
+      box.innerHTML = `<div style="text-align:center; padding:20px; color:#aaa;">Keine Kameras konfiguriert</div>`;
     }
 
     if (!this._popup.open) {
@@ -388,6 +457,7 @@ class ZigAlarmCard extends HTMLElement {
 
   _update() {
     const content = this._root.getElementById("content");
+    const card = this._root.querySelector("ha-card");
     if (!content) return;
 
     const st = this._st();
@@ -408,6 +478,13 @@ class ZigAlarmCard extends HTMLElement {
     const readyHome = attrs.ready_to_arm_home;
     const readyAway = attrs.ready_to_arm_away;
 
+    // Toggle Flashing Class
+    if (state === "triggered") {
+      card.classList.add("triggered");
+    } else {
+      card.classList.remove("triggered");
+    }
+
     const cams = this._getCameras(attrs);
     const hasCams = cams.length > 0;
 
@@ -427,13 +504,13 @@ class ZigAlarmCard extends HTMLElement {
     const iconAway = '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4m0 6a3 3 0 0 1 3 3c0 1.3-.84 2.4-2 2.82V15h-2v-2.18c-1.16-.42-2-1.52-2-2.82a3 3 0 0 1 3-3z"/></svg>';
 
     content.innerHTML = `
-      < div class="header" data - state="${st.state || ""}" >
+      <div class="header" data-state="${st.state || ""}">
         <div class="header-left">
            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--za-primary)"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
            <div class="title">${this._config.name || "ZigAlarm"}</div>
         </div>
         <div class="pill">${state}</div>
-      </div >
+      </div>
 
       <div class="actions-grid">
         <button class="btn-action" title="Zuhause aktivieren" id="btnHome">
@@ -484,7 +561,7 @@ class ZigAlarmCard extends HTMLElement {
       ` : ``
       }
 
-    <div class="footer-card">powered by openKAIRO.de</div>
+    <div class="footer-card">Powered by <a href="https://openkairo.de" target="_blank">OPENKAIRO</a></div>
     `;
 
     // Re-attach listeners
