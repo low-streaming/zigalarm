@@ -92,104 +92,129 @@ class ZigAlarmCard extends HTMLElement {
     this._root.innerHTML = `
       <style>
         :host {
+          --za-bg-body: #0f172a; 
+          --za-bg-card: rgba(15, 23, 42, 0.6);
           --za-primary: #3b82f6; 
-          --za-danger: #ef4444;
-          --za-bg-card: rgba(30, 30, 35, 0.6);
+          --za-primary-glow: rgba(59, 130, 246, 0.5);
+          --za-success: #10b981;
+          --za-success-glow: rgba(16, 185, 129, 0.5);
+          --za-danger: #ef4444; 
+          --za-danger-glow: rgba(239, 68, 68, 0.5);
+          --za-text: #f8fafc;
           --za-border: rgba(255, 255, 255, 0.08);
-          --za-text: #e2e8f0;
           font-family: ui-sans-serif, system-ui, sans-serif;
         }
+
         ha-card {
-          padding: 20px;
-          border-radius: 20px;
-          background: var(--za-bg-card) !important;
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          padding: 24px;
+          border-radius: 24px;
+          background: linear-gradient(145deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95)) !important;
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
           border: 1px solid var(--za-border);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.25);
           color: var(--za-text);
           transition: all 0.3s ease;
-        }
-        ha-card:hover { border-color: rgba(255,255,255,0.15); box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
-
-        .header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 16px; }
-        .title { font-size: 1.25rem; font-weight: 700; background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .pill { 
-          font-size: 0.75rem; padding: 4px 10px; border-radius: 99px; 
-          background: rgba(255,255,255,0.08); border: 1px solid var(--za-border);
-          font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+          overflow: hidden;
+          position: relative;
         }
         
-        .row { display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; }
+        /* Aurora effect on card specific states */
+        ha-card::before {
+          content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+          background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.05), transparent 60%);
+          animation: aurora 15s linear infinite; pointer-events: none;
+        }
+        @keyframes aurora { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px; position:relative; z-index:2; }
+        
+        .title { 
+          font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em;
+          background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        
+        .pill { 
+          font-size: 0.75rem; padding: 6px 14px; border-radius: 99px; 
+          background: rgba(255,255,255,0.05); border: 1px solid var(--za-border);
+          font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+          transition: all 0.3s;
+        }
+        
+        /* State styling via data-state on header */
+        .header[data-state*="armed"] .pill {
+          background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7; box-shadow: 0 0 12px var(--za-success-glow);
+        }
+        .header[data-state="triggered"] .pill {
+          background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.6); color: #fca5a5; animation: pulse-danger 1.5s infinite;
+        }
+        @keyframes pulse-danger { 
+          0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 
+          70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 
+          100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } 
+        }
+
+        .row { display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; position:relative; z-index:2; }
         
         button {
-          border: 1px solid var(--za-border);
-          border-radius: 12px;
-          padding: 10px 14px;
-          cursor: pointer;
-          background: rgba(255,255,255,0.03);
-          color: var(--za-text);
-          font-weight: 600;
-          transition: all 0.2s;
+          border: 1px solid var(--za-border); border-radius: 14px; padding: 12px 18px;
+          cursor: pointer; background: rgba(255,255,255,0.03); color: var(--za-text);
+          font-weight: 700; transition: all 0.2s; flex: 1; white-space: nowrap;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-size: 0.9rem;
         }
-        button:hover { background: rgba(255,255,255,0.08); transform: translateY(-1px); }
+        button:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         
         button.primary { 
-          background: linear-gradient(135deg, var(--za-primary) 0%, #2563eb 100%);
-          color: #fff; border: none;
+          background: linear-gradient(135deg, var(--za-primary) 0%, #2563eb 100%); color: #fff; border: none;
           box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
-        button.primary:hover { box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4); }
+        button.primary:hover { box-shadow: 0 8px 16px rgba(37, 99, 235, 0.4); }
 
         button.danger {
-          background: rgba(239, 68, 68, 0.15);
-          border-color: rgba(239, 68, 68, 0.3);
-          color: #fca5a5;
+          background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5;
         }
-        button.danger:hover { background: rgba(239, 68, 68, 0.25); color: #fff; }
+        button.danger:hover { background: rgba(239, 68, 68, 0.25); color: #fff; box-shadow: 0 8px 20px var(--za-danger-glow); }
 
         .muted { opacity: .6; font-size: 0.8rem; margin-top: 8px; }
         
-        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; position:relative; z-index:2; }
         
         .box { 
-          border: 1px solid var(--za-border); border-radius: 14px; padding: 12px;
-          background: rgba(0,0,0,0.15);
+          border: 1px solid var(--za-border); border-radius: 18px; padding: 16px;
+          background: rgba(0,0,0,0.2); transition: all 0.2s;
         }
-        .box h4 { margin: 0 0 8px 0; font-size: 0.85rem; opacity: .8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .box:hover { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.15); }
+
+        .box h4 { margin: 0 0 10px 0; font-size: 0.8rem; opacity: .7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
         
-        .kv { display:flex; justify-content:space-between; gap:12px; font-size: 0.9rem; margin-bottom: 4px; }
-        .kv span:first-child { opacity: 0.7; }
+        .kv { display:flex; justify-content:space-between; gap:12px; font-size: 0.9rem; margin-bottom: 6px; }
+        .kv span:first-child { color: var(--za-text-muted); }
         
         .list { margin: 6px 0 0 0; padding-left: 18px; font-size: 0.85rem; opacity: .85; }
-        .cams-inline { margin-top: 16px; }
+        .cams-inline { margin-top: 20px; position:relative; z-index:2; }
         
-        .warn { margin-top: 12px; padding: 12px; border-radius: 12px; background: rgba(255,193,7,.1); border: 1px solid rgba(255,193,7,.2); color: #fcd34d; }
+        .warn { margin-top: 16px; padding: 16px; border-radius: 16px; background: rgba(255,193,7,.1); border: 1px solid rgba(255,193,7,.2); color: #fcd34d; position:relative; z-index:2; }
         
-        .setup { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--za-border); }
+        .setup { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--za-border); position:relative; z-index:2; }
         
         /* Modal Popup */
         dialog.zigalarm-popup {
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 24px;
-          padding: 0;
-          max-width: min(900px, 92vw);
-          width: 92vw;
-          background: #1a1b20;
-          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+          border: 1px solid rgba(255,255,255,0.1); border-radius: 28px;
+          padding: 0; max-width: min(900px, 92vw); width: 92vw;
+          background: #0f172a; box-shadow: 0 50px 100px -20px rgba(0,0,0,0.7);
           overflow: hidden;
         }
-        dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(5px); }
+        dialog::backdrop { background: rgba(0,0,0,.8); backdrop-filter: blur(8px); }
         
         .dlg-head {
           display:flex; align-items:center; justify-content:space-between; gap:12px;
-          padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);
+          padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.08);
           background: rgba(255,255,255,0.02);
         }
-        .dlg-title { font-weight: 700; font-size: 1.1rem; color: #fff; }
-        .dlg-body { padding: 20px; background: #1a1b20; }
-        .dlg-close { background: rgba(255,255,255,0.1); width: 32px; height: 32px; padding: 0; display:flex; align-items:center; justify-content:center; border-radius: 50%; border:none; color:#fff; }
-        .dlg-close:hover { background: rgba(255,255,255,0.2); }
+        .dlg-title { font-weight: 800; font-size: 1.25rem; color: #fff; }
+        .dlg-body { padding: 24px; background: #0f172a; }
+        .dlg-close { background: rgba(255,255,255,0.1); width: 36px; height: 36px; padding: 0; display:flex; align-items:center; justify-content:center; border-radius: 50%; border:none; color:#fff; cursor:pointer; transition: all 0.2s; }
+        .dlg-close:hover { background: rgba(239, 68, 68, 0.8); transform: rotate(90deg); }
         .dlg-cards { display: grid; gap: 16px; }
       </style>
 
@@ -392,7 +417,7 @@ class ZigAlarmCard extends HTMLElement {
     const showSetup = !!this._config.show_setup;
 
     content.innerHTML = `
-      <div class="header">
+      <div class="header" data-state="${st.state || ""}">
         <div class="title">${this._config.name || "ZigAlarm"}</div>
         <div class="pill">${state}</div>
       </div>
