@@ -120,13 +120,33 @@ class ZigAlarmPanel extends HTMLElement {
         /* Animated Grid Background */
         .app-container {
           min-height: 100%;
+          position: relative; z-index: 1;
           background: 
-            linear-gradient(rgba(11, 12, 21, 0.95), rgba(11, 12, 21, 0.95)),
+            linear-gradient(rgba(11, 12, 21, 0.85), rgba(11, 12, 21, 0.85)),
             linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
             linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
           background-size: 100% 100%, 40px 40px, 40px 40px;
           display: flex;
           flex-direction: column;
+        }
+        
+        /* Cool Background FX */
+        .bg-fx {
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+          pointer-events: none; overflow: hidden;
+        }
+        .bg-blob {
+          position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.25;
+          animation: float 20s infinite ease-in-out;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: var(--za-primary); animation-delay: 0s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: var(--za-accent); animation-delay: -10s; }
+        
+        @keyframes float {
+          0% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, 50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0, 0) scale(1); }
         }
 
         /* Navbar */
@@ -386,6 +406,11 @@ class ZigAlarmPanel extends HTMLElement {
         .item:hover { background: rgba(255,255,255,0.1); }
         .modalFoot { padding: 20px; border-top: 1px solid var(--za-border); display: flex; justify-content: flex-end; gap: 10px; }
       </style>
+
+      <div class="bg-fx">
+        <div class="bg-blob blob-1"></div>
+        <div class="bg-blob blob-2"></div>
+      </div>
 
       <div class="app-container">
         <!-- Navbar -->
@@ -812,8 +837,8 @@ class ZigAlarmPanel extends HTMLElement {
   }
 
   _renderChips(key) {
-    const host = this._$(`${key}Chips`);
-    const pickBtn = this._$(`${key}Pick`);
+    const host = this._$(`${key} Chips`);
+    const pickBtn = this._$(`${key} Pick`);
     if (!host) return;
 
     const items = uniq(this._panelSelections?.[key] || []);
@@ -821,11 +846,11 @@ class ZigAlarmPanel extends HTMLElement {
       .map((eid) => {
         const fn = this._friendlyName(eid);
         return `
-          <div class="chip">
+          < div class="chip" >
             <span>${this._escape(fn)}</span>
             <span class="sub2">${this._escape(eid)}</span>
             <button title="Entfernen" data-eid="${eid}">✕</button>
-          </div>`;
+          </div > `;
       })
       .join("");
 
@@ -851,11 +876,11 @@ class ZigAlarmPanel extends HTMLElement {
     const eid = items[0] || null;
     host.innerHTML = eid
       ? `
-        <div class="chip">
+          < div class="chip" >
           <span>${this._escape(this._friendlyName(eid))}</span>
           <span class="sub2">${this._escape(eid)}</span>
           <button title="Entfernen" data-eid="${eid}">✕</button>
-        </div>`
+        </div > `
       : "";
 
     host.querySelectorAll("button[data-eid]").forEach((b) => {
@@ -882,7 +907,7 @@ class ZigAlarmPanel extends HTMLElement {
     if (!sel) return;
 
     const current = (sel.value || "").trim();
-    sel.innerHTML = alarmList.map((eid) => `<option value="${eid}">${eid}</option>`).join("");
+    sel.innerHTML = alarmList.map((eid) => `< option value = "${eid}" > ${eid}</option > `).join("");
 
     if (current && alarmList.includes(current)) sel.value = current;
     else if (alarmList[0]) sel.value = alarmList[0];
@@ -1029,8 +1054,8 @@ class ZigAlarmPanel extends HTMLElement {
     setSwitch("camOnlyTrig", a.camera_show_only_triggered ?? false);
     setSwitch("forceArm", a.force_arm ?? false);
 
-    setField("exitDelay", a.exit_delay ?? 30);
-    setField("entryDelay", a.entry_delay ?? 30);
+    setField("exitDelay", a.exit_delay ?? 5);
+    setField("entryDelay", a.entry_delay ?? 5);
     setField("triggerTime", a.trigger_time ?? 180);
 
     // open sensors
@@ -1038,13 +1063,13 @@ class ZigAlarmPanel extends HTMLElement {
     const openText = this._$("openSensorsText");
     if (openText) {
       if (open.length > 0) {
-        openText.innerHTML = `<span style="color:var(--za-warning)">AKTIVE SENSOREN:</span> <br/>${open.join(", ")}`;
+        openText.innerHTML = `< span style = "color:var(--za-warning)" > AKTIVE SENSOREN:</span > <br />${open.join(", ")} `;
       } else {
-        openText.innerHTML = `<span style="color:var(--za-success)">ALLE SENSOREN GESCHLOSSEN</span>`;
+        openText.innerHTML = `< span style = "color:var(--za-success)" > ALLE SENSOREN GESCHLOSSEN</span > `;
       }
     }
 
-    if (status) status.textContent = `Verbunden mit ${selected}`;
+    if (status) status.textContent = `Verbunden mit ${selected} `;
 
     // Update Camera Preview
     this._updateCamPreview(a.camera_entities || []);
@@ -1100,13 +1125,13 @@ class ZigAlarmPanel extends HTMLElement {
     this._lastCamStr = camStr;
 
     if (!cams || cams.length === 0) {
-      card.innerHTML = `<div class="muted">Keine Kameras ausgewählt</div>`;
+      card.innerHTML = `< div class="muted" > Keine Kameras ausgewählt</div > `;
       return;
     }
 
     const helpers = await this._getHelpers();
     if (!helpers) {
-      card.innerHTML = `<div class="muted">Fehler: Karten-Helfer nicht verfügbar</div>`;
+      card.innerHTML = `< div class="muted" > Fehler: Karten - Helfer nicht verfügbar</div > `;
       return;
     }
 
@@ -1163,8 +1188,8 @@ class ZigAlarmPanel extends HTMLElement {
       camera_show_only_triggered: !!this._$("camOnlyTrig")?.checked,
       force_arm: !!this._$("forceArm")?.checked,
 
-      exit_delay: Number(this._$("exitDelay")?.value || 30),
-      entry_delay: Number(this._$("entryDelay")?.value || 30),
+      exit_delay: Number(this._$("exitDelay")?.value || 5),
+      entry_delay: Number(this._$("entryDelay")?.value || 5),
       trigger_time: Number(this._$("triggerTime")?.value || 180),
     };
 
