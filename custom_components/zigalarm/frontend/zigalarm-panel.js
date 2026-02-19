@@ -109,6 +109,7 @@ class ZigAlarmPanel extends HTMLElement {
           --za-accent: #8b5cf6; /* Violet 500 */
           --za-success: #10b981;
           --za-danger: #ef4444; 
+          --za-warning: #f59e0b; 
           --za-text: #f8fafc;
           --za-text-muted: #94a3b8;
           --za-border: rgba(255, 255, 255, 0.08);
@@ -483,13 +484,50 @@ class ZigAlarmPanel extends HTMLElement {
 
           <!-- TAB: Info -->
           <div id="tab-info" class="tab-view">
-            <div class="card" style="text-align:center; padding:60px;">
-              <h1 class="brand" style="justify-content:center; font-size:3rem; margin-bottom:20px;">ZIG<span>ALARM</span></h1>
+            <div class="card" style="text-align:center; padding:40px;">
+              <h1 class="brand" style="justify-content:center; font-size:3rem; margin-bottom:10px;">ZIG<span>ALARM</span></h1>
               <div class="muted">Version 2.0.0 • Premium Edition</div>
-              <div style="margin-top:40px;">
-                <p class="muted">Entwickelt für Home Assistant.</p>
-                <div class="hint" id="hintLine" style="margin: 20px auto; max-width:400px;">System bereit.</div>
+              <div class="hint" id="hintLine" style="margin: 20px auto; max-width:400px; font-weight:bold;">System bereit.</div>
+            </div>
+
+            <div class="grid2">
+              <div class="card">
+                 <div class="secTitle">Wie funktioniert ZigAlarm?</div>
+                 <p class="muted">
+                   ZigAlarm verwandelt deine vorhandenen Sensoren (Zigbee, WLAN, etc.) in eine professionelle Alarmanlage.<br><br>
+                   Das System überwacht permanent den Zustand aller Sensoren. Bevor du scharf schalten kannst, prüft die 
+                   <b>Ready-to-Arm</b> Technologie, ob alle Fenster und Türen geschlossen sind. 
+                   Ist ein Sensor offen, wird dies sofort im Dashboard angezeigt.
+                 </p>
               </div>
+
+              <div class="card">
+                 <div class="secTitle">Sensor-Logik</div>
+                 <div style="display:flex; flex-direction:column; gap:16px;">
+                   <div>
+                     <strong style="color:var(--za-primary)">Außen (Tür/Fenster)</strong>
+                     <div class="muted">Sensoren an der Außenhaut des Gebäudes. Diese werden bei <b>Zuhause</b> UND <b>Abwesend</b> überwacht.</div>
+                   </div>
+                   <div>
+                     <strong style="color:var(--za-primary)">Bewegung (Innen)</strong>
+                     <div class="muted">Bewegungsmelder im Innenraum. Diese werden NUR bei <b>Abwesend</b> überwacht, damit du dich zuhause frei bewegen kannst.</div>
+                   </div>
+                   <div>
+                     <strong style="color:var(--za-danger)">24/7 (Gefahr)</strong>
+                     <div class="muted">Rauch-, Wasser- oder Gasmelder. Diese lösen <b>IMMER</b> Alarm aus, egal ob die Anlage scharf oder unscharf ist.</div>
+                   </div>
+                 </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <div class="secTitle">Alarm-Ablauf</div>
+              <p class="muted">
+                1. <b>Auslösung:</b> Ein Sensor meldet Aktivität.<br>
+                2. <b>Verzögerung:</b> Wenn konfiguriert, läuft erst die Eingangsverzögerung ab (Warnung).<br>
+                3. <b>Alarm:</b> Die Sirene und Lichter werden aktiviert. Kameras senden Bilder.<br>
+                4. <b>Reset:</b> Nach der Alarmdauer (Standard 180s) setzt sich das System zurück, bleibt aber scharf.
+              </p>
             </div>
           </div>
 
@@ -887,11 +925,11 @@ class ZigAlarmPanel extends HTMLElement {
     // Ready indicator (de)
     const ready = (a.ready_to_arm_home && a.ready_to_arm_away)
       ? "SYSTEM BEREIT - ALLES OK"
-      : "WARNUNG - SENSOREN OFFEN";
+      : "HINWEIS: SENSOREN GEÖFFNET";
 
     if (readyLine) {
       readyLine.textContent = ready;
-      readyLine.style.color = (a.ready_to_arm_home && a.ready_to_arm_away) ? "var(--za-success)" : "var(--za-danger)";
+      readyLine.style.color = (a.ready_to_arm_home && a.ready_to_arm_away) ? "var(--za-success)" : "var(--za-warning)";
     }
 
     this._setHint("System online und verbunden.");
@@ -948,7 +986,7 @@ class ZigAlarmPanel extends HTMLElement {
     const openText = this._$("openSensorsText");
     if (openText) {
       if (open.length > 0) {
-        openText.innerHTML = `<span style="color:var(--za-danger)">OFFENE SENSOREN:</span> <br/>${open.join(", ")}`;
+        openText.innerHTML = `<span style="color:var(--za-warning)">AKTIVE SENSOREN:</span> <br/>${open.join(", ")}`;
       } else {
         openText.innerHTML = `<span style="color:var(--za-success)">ALLE SENSOREN GESCHLOSSEN</span>`;
       }
