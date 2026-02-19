@@ -912,15 +912,34 @@ class ZigAlarmPanel extends HTMLElement {
     return list[0] || null;
   }
 
-  _updateAlarmSelect(alarmList) {
+  _updateAlarmSelect() {
     const sel = this._$("alarmEntitySel");
-    if (!sel) return;
+    if (!sel || !this._hass) return;
+
+    // Filter all alarm control panels
+    const alarmList = Object.keys(this._hass.states)
+      .filter(eid => eid.startsWith("alarm_control_panel."))
+      .sort();
+
+    const listStr = JSON.stringify(alarmList);
+    if (this._lastAlarmList === listStr && sel.options.length > 0) {
+      // List hasn't changed, but maybe selection is empty?
+      if (!sel.value && alarmList.length > 0) sel.value = alarmList[0];
+      return;
+    }
+    this._lastAlarmList = listStr;
 
     const current = (sel.value || "").trim();
+
+    if (alarmList.length === 0) {
+      sel.innerHTML = `<option value="" style="background:#1a1b23; color:white;">Keine Alarme gefunden</option>`;
+      return;
+    }
+
     sel.innerHTML = alarmList.map((eid) => `<option value="${eid}" style="background:#1a1b23; color:white;">${eid}</option>`).join("");
 
     if (current && alarmList.includes(current)) sel.value = current;
-    else if (alarmList[0]) { sel.value = alarmList[0]; } // Auto-select first
+    else if (alarmList.length > 0) sel.value = alarmList[0];
   }
 
   async _arm(mode) {
@@ -979,6 +998,8 @@ class ZigAlarmPanel extends HTMLElement {
       this._setHint("Warte auf Home Assistant…");
       return;
     }
+    this._updateAlarmSelect();
+
 
     if (!this._panelSelections) this._panelSelections = {};
 
