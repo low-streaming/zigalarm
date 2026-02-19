@@ -311,15 +311,26 @@ class ZigAlarmPanel extends HTMLElement {
         .pickRow { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 12px; }
         .pickBtn {
           width: 100%; text-align: left; padding: 16px; border-radius: 12px;
-          border: 1px solid var(--za-border); background: rgba(0, 0, 0, 0.2); color: var(--za-text);
+          border: 1px solid var(--za-border); 
+          background: #06070a; /* Darker background */
+          color: var(--za-text);
           cursor:pointer; font-weight: 600; transition: all 0.2s;
         }
-        .pickBtn:hover { border-color: var(--za-primary); background: rgba(0,0,0,0.4); }
+        .pickBtn:hover { border-color: var(--za-primary); background: #000; }
         .btnAdd {
           padding: 16px 24px; border-radius: 12px; border: 1px solid var(--za-border);
           background: rgba(255,255,255,0.05); color: white; font-weight: 700; cursor: pointer; transition: all 0.2s;
         }
         .btnAdd:hover { background: rgba(255,255,255,0.1); }
+        
+        ha-textfield {
+            --mdc-text-field-fill-color: #06070a;
+            --mdc-text-field-ink-color: var(--za-text);
+            --mdc-text-field-label-ink-color: var(--za-text-muted);
+            --mdc-theme-primary: var(--za-primary);
+            margin-bottom: 12px; display: block;
+            border-radius: 8px;
+        }
         
         .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
         .chip {
@@ -962,23 +973,12 @@ class ZigAlarmPanel extends HTMLElement {
     const card = this._$("camPreviewCard");
     if (!card) return;
 
-    cams = (cams || []).filter(Boolean).sort();
-    const camStr = JSON.stringify(cams);
-
-    // If config hasn't changed and we have elements, just update HASS and return
-    if (this._lastCamStr === camStr && card.children.length > 0) {
-      Array.from(card.children).forEach(el => {
-        if (typeof el.setConfig === 'function' || el.tagName.includes("-")) {
-          try { el.hass = this._hass; } catch (e) { }
-        }
-      });
-      return;
-    }
-
+    cams = cams.filter(Boolean);
+    const camStr = JSON.stringify(cams.sort());
+    if (this._lastCamStr === camStr && card.children.length > 0) return;
     this._lastCamStr = camStr;
-    card.innerHTML = "";
 
-    if (cams.length === 0) {
+    if (!cams || cams.length === 0) {
       card.innerHTML = `<div class="muted">Keine Kameras ausgewählt</div>`;
       return;
     }
@@ -989,22 +989,23 @@ class ZigAlarmPanel extends HTMLElement {
       return;
     }
 
-    // Create a card for each camera directly
-    for (const cam of cams) {
-      const el = helpers.createCardElement({
+    card.innerHTML = "";
+
+    // Create stack for multiple cameras or single card for one
+    const config = {
+      type: "vertical-stack",
+      cards: cams.map(eid => ({
         type: "picture-entity",
-        entity: cam,
+        entity: eid,
         show_name: true,
         show_state: false,
         camera_view: "auto"
-      });
-      el.hass = this._hass;
-      el.style.width = "100%";
-      el.style.marginBottom = "12px";
-      el.style.borderRadius = "12px";
-      el.style.overflow = "hidden";
-      card.appendChild(el);
-    }
+      }))
+    };
+
+    const el = helpers.createCardElement(config);
+    el.hass = this._hass;
+    card.appendChild(el);
   }
 
   async _save() {
