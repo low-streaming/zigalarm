@@ -423,7 +423,7 @@ class ZigAlarmPanel extends HTMLElement {
                 <div class="card">
                   <div class="secTitle">Sensoren</div>
                   <div class="muted" style="margin-bottom:16px;">Definiere, welche Sensoren den Alarm auslösen.</div>
-                  ${this._pickerHtml("perimeter", "Außenhaut (Tür/Fenster)")}
+                  ${this._pickerHtml("perimeter", "Außen (Tür/Fenster)")}
                   <div style="height:20px;"></div>
                   ${this._pickerHtml("motion", "Bewegung (Innen)")}
                   <div style="height:20px;"></div>
@@ -541,7 +541,7 @@ class ZigAlarmPanel extends HTMLElement {
     this._$("btnTrigger").addEventListener("click", () => this._trigger());
 
     // Picker hooks
-    this._hookPicker("perimeter", ["binary_sensor", "sensor", "event"], true, "Außenhaut (Perimeter)");
+    this._hookPicker("perimeter", ["binary_sensor", "sensor", "event"], true, "Außen (Perimeter)");
     this._hookPicker("motion", ["binary_sensor", "sensor", "event"], true, "Bewegung (Motion)");
     this._hookPicker("always", ["binary_sensor", "sensor", "event"], true, "24/7 Sensoren");
     this._hookPicker("alarmLights", ["light"], true, "Alarm-Lichter");
