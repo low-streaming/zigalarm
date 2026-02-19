@@ -25,7 +25,6 @@ from .const import (
     OPT_SIREN_ENTITIES,
     OPT_TRIGGER_TIME,
     OPT_FORCE_ARM,
-    OPT_DASHBOARD_TITLE,
     DEFAULT_ENTRY_DELAY,
     DEFAULT_EXIT_DELAY,
     DEFAULT_TRIGGER_TIME,
@@ -165,7 +164,7 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
             "ready_to_arm_home": self._ready_home,
             "ready_to_arm_away": self._ready_away,
             "force_arm": bool(opts.get(OPT_FORCE_ARM, False)),
-            "dashboard_title": opts.get(OPT_DASHBOARD_TITLE, DEFAULT_DASHBOARD_TITLE),
+
 
             "keypad_enabled": bool(opts.get(OPT_KEYPAD_ENABLED, False)),
             "keypad_entities": _uniq_clean(opts.get(OPT_KEYPAD_ENTITIES, [])),
