@@ -1062,7 +1062,6 @@ class ZigAlarmPanel extends HTMLElement {
     const title = a.dashboard_title || "Mein Dashboard";
     const titleEl = this._$("dashTitle");
     if (titleEl) titleEl.textContent = title;
-    setField("dashTitleInput", title);
 
     this._renderChips("perimeter");
     this._renderChips("motion");
@@ -1083,6 +1082,8 @@ class ZigAlarmPanel extends HTMLElement {
       if (!el) return;
       el.checked = !!val;
     };
+
+    setField("dashTitleInput", title);
 
     setField("lightColor", a.alarm_light_color || "#ff0000");
     setField("lightBrightness", a.alarm_light_brightness ?? 255);
