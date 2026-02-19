@@ -1070,7 +1070,7 @@ class ZigAlarmPanel extends HTMLElement {
       el.checked = !!val;
     };
 
-    setField("dashTitleInput", title);
+
 
     setField("lightColor", a.alarm_light_color || "#ff0000");
     setField("lightBrightness", a.alarm_light_brightness ?? 255);
