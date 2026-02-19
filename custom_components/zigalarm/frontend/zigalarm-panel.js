@@ -58,7 +58,11 @@ class ZigAlarmPanel extends HTMLElement {
 
   _setHint(txt) {
     const el = this._$("hintLine");
-    if (el) el.textContent = txt;
+    if (!el) return;
+    el.textContent = txt;
+    if (txt.includes("System online")) el.style.color = "var(--za-success)";
+    else if (txt.includes("Kein ZigAlarm")) el.style.color = "var(--za-danger)";
+    else el.style.color = "var(--za-text-muted)";
   }
 
   _filterEntities(domains) {
