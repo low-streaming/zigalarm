@@ -24,6 +24,7 @@ from .const import (
     OPT_SIREN,
     OPT_SIREN_ENTITIES,
     OPT_TRIGGER_TIME,
+    OPT_FORCE_ARM,
     DEFAULT_ENTRY_DELAY,
     DEFAULT_EXIT_DELAY,
     DEFAULT_TRIGGER_TIME,
@@ -162,6 +163,7 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
             "open_sensors": self._open_sensors,
             "ready_to_arm_home": self._ready_home,
             "ready_to_arm_away": self._ready_away,
+            "force_arm": bool(opts.get(OPT_FORCE_ARM, False)),
 
             "keypad_enabled": bool(opts.get(OPT_KEYPAD_ENABLED, False)),
             "keypad_entities": _uniq_clean(opts.get(OPT_KEYPAD_ENTITIES, [])),
@@ -344,7 +346,9 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         self._cancel_tasks()
         self._compute_ready()
-        if not self._ready_home:
+        
+        force = bool(self.entry.options.get(OPT_FORCE_ARM, False))
+        if not self._ready_home and not force:
             return
         exit_delay = int((self.entry.options or {}).get(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY))
         self._start_arming(AlarmControlPanelState.ARMED_HOME, exit_delay)
@@ -352,7 +356,9 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         self._cancel_tasks()
         self._compute_ready()
-        if not self._ready_away:
+        
+        force = bool(self.entry.options.get(OPT_FORCE_ARM, False))
+        if not self._ready_away and not force:
             return
         exit_delay = int((self.entry.options or {}).get(OPT_EXIT_DELAY, DEFAULT_EXIT_DELAY))
         self._start_arming(AlarmControlPanelState.ARMED_AWAY, exit_delay)

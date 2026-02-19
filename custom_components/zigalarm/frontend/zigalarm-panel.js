@@ -189,7 +189,8 @@ class ZigAlarmPanel extends HTMLElement {
         .nav-item.active {
           background: var(--za-primary);
           color: #fff;
-          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4), 0 0 20px rgba(14, 165, 233, 0.2);
+          border: 1px solid rgba(255,255,255,0.2);
         }
 
         /* Content Area */
@@ -210,6 +211,12 @@ class ZigAlarmPanel extends HTMLElement {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes breathe { 
+          0% { opacity: 0.8; } 
+          50% { opacity: 1; text-shadow: 0 0 15px currentColor; } 
+          100% { opacity: 0.8; } 
+        }
+        .breathe { animation: breathe 3s infinite ease-in-out; }
 
         /* Cards */
         .card {
@@ -457,6 +464,13 @@ class ZigAlarmPanel extends HTMLElement {
                   ${this._pickerHtml("motion", "Bewegung (Innen)")}
                   <div style="height:20px;"></div>
                   ${this._pickerHtml("always", "24/7 (Rauch / Wasser)")}
+                  
+                  <div style="margin-top:20px; border-top:1px solid var(--za-border); padding-top:16px;">
+                     <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <span class="muted"><b>Scharfschalten erzwingen</b><br><small>Ignoriere offene Sensoren beim Schärfen</small></span>
+                        <ha-switch id="forceArm"></ha-switch>
+                     </div>
+                  </div>
                 </div>
 
                 <div>
@@ -545,6 +559,24 @@ class ZigAlarmPanel extends HTMLElement {
                 3. <b>Alarm:</b> Die Sirene und Lichter werden aktiviert. Kameras senden Bilder.<br>
                 4. <b>Reset:</b> Nach der Alarmdauer (Standard 180s) setzt sich das System zurück, bleibt aber scharf.
               </p>
+            </div>
+
+            <div class="card">
+              <div class="secTitle">Premium Features</div>
+              <div style="display:flex; flex-direction:column; gap:16px;">
+                 <div>
+                   <strong style="color:var(--za-primary)">Cyber-Scanner</strong>
+                   <div class="muted">Visuelles Feedback beim Scharfschalten. Der Scanner im Dashboard zeigt aktive Überwachung an.</div>
+                 </div>
+                 <div>
+                   <strong style="color:var(--za-accent)">Voice Feedback</strong>
+                   <div class="muted">Das System spricht mit dir! Bestätigung bei Scharf/Unscharf ("System Armed") und Alarm.</div>
+                 </div>
+                  <div>
+                   <strong style="color:var(--za-warning)">Erzwungener Modus</strong>
+                   <div class="muted">Sensoren ignorieren und trotzdem scharfschalten (konfigurierbar unter Sensoren).</div>
+                 </div>
+              </div>
             </div>
           </div>
 
@@ -950,6 +982,8 @@ class ZigAlarmPanel extends HTMLElement {
     }
 
     this._setHint("System online und verbunden.");
+    const hintEl = this._$("hintLine");
+    if (hintEl) hintEl.classList.add("breathe");
 
     // Init selections from entity attributes only once (when empty)
     const ensure = (k, def) => {
@@ -993,6 +1027,7 @@ class ZigAlarmPanel extends HTMLElement {
     setSwitch("lightRestore", a.alarm_light_restore ?? true);
 
     setSwitch("camOnlyTrig", a.camera_show_only_triggered ?? false);
+    setSwitch("forceArm", a.force_arm ?? false);
 
     setField("exitDelay", a.exit_delay ?? 30);
     setField("entryDelay", a.entry_delay ?? 30);
@@ -1126,6 +1161,7 @@ class ZigAlarmPanel extends HTMLElement {
 
       camera_entities: uniq(this._panelSelections?.cams || []),
       camera_show_only_triggered: !!this._$("camOnlyTrig")?.checked,
+      force_arm: !!this._$("forceArm")?.checked,
 
       exit_delay: Number(this._$("exitDelay")?.value || 30),
       entry_delay: Number(this._$("entryDelay")?.value || 30),
