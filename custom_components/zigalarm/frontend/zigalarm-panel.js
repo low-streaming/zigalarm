@@ -122,7 +122,7 @@ class ZigAlarmPanel extends HTMLElement {
           min-height: 100%;
           position: relative; z-index: 1;
           background: 
-            linear-gradient(rgba(11, 12, 21, 0.85), rgba(11, 12, 21, 0.85)),
+            linear-gradient(rgba(11, 12, 21, 0.75), rgba(11, 12, 21, 0.75)),
             linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
             linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
           background-size: 100% 100%, 40px 40px, 40px 40px;
@@ -136,7 +136,7 @@ class ZigAlarmPanel extends HTMLElement {
           pointer-events: none; overflow: hidden;
         }
         .bg-blob {
-          position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.25;
+          position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4;
           animation: float 20s infinite ease-in-out;
         }
         .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: var(--za-primary); animation-delay: 0s; }
@@ -837,8 +837,8 @@ class ZigAlarmPanel extends HTMLElement {
   }
 
   _renderChips(key) {
-    const host = this._$(`${key} Chips`);
-    const pickBtn = this._$(`${key} Pick`);
+    const host = this._$(`${key}Chips`);
+    const pickBtn = this._$(`${key}Pick`);
     if (!host) return;
 
     const items = uniq(this._panelSelections?.[key] || []);
@@ -846,7 +846,7 @@ class ZigAlarmPanel extends HTMLElement {
       .map((eid) => {
         const fn = this._friendlyName(eid);
         return `
-          < div class="chip" >
+          <div class="chip">
             <span>${this._escape(fn)}</span>
             <span class="sub2">${this._escape(eid)}</span>
             <button title="Entfernen" data-eid="${eid}">✕</button>
@@ -1063,9 +1063,9 @@ class ZigAlarmPanel extends HTMLElement {
     const openText = this._$("openSensorsText");
     if (openText) {
       if (open.length > 0) {
-        openText.innerHTML = `< span style = "color:var(--za-warning)" > AKTIVE SENSOREN:</span > <br />${open.join(", ")} `;
+        openText.innerHTML = `<span style="color:var(--za-warning)">AKTIVE SENSOREN:</span> <br/>${open.join(", ")}`;
       } else {
-        openText.innerHTML = `< span style = "color:var(--za-success)" > ALLE SENSOREN GESCHLOSSEN</span > `;
+        openText.innerHTML = `<span style="color:var(--za-success)">ALLE SENSOREN GESCHLOSSEN</span>`;
       }
     }
 
