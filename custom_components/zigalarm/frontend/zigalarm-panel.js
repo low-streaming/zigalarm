@@ -433,7 +433,7 @@ class ZigAlarmPanel extends HTMLElement {
           <div id="tab-dashboard" class="tab-view active">
             <div class="dash-hero">
               <div>
-                <h1 style="margin:0; font-size:2rem; font-weight:800;">Mein Dashboard</h1>
+                <h1 id="dashTitle" style="margin:0; font-size:2rem; font-weight:800;">Mein Dashboard</h1>
                 <div class="muted">Live Status & Steuerung</div>
               </div>
               <div class="pill-hero" id="statePill">-</div>
@@ -476,13 +476,21 @@ class ZigAlarmPanel extends HTMLElement {
           <div id="tab-settings" class="tab-view">
              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
                 <h1 style="margin:0;">Konfiguration</h1>
-                <div style="display:flex; gap:12px;">
-                  <button class="btn" id="reload">Reload</button>
-                  <button class="btn primary" id="save">Speichern</button>
-                </div>
-             </div>
+                 <div style="display:flex; gap:12px;">
+                   <button class="btn" id="reload">Reload</button>
+                   <button class="btn success" id="save">SPEICHERN</button>
+                 </div>
+              </div>
 
              <div class="grid2">
+                <div class="card">
+                  <div class="secTitle">Allgemeines</div>
+                  <div class="muted" style="margin-bottom:16px;">Grundlegende Einstellungen</div>
+                  <ha-textfield label="Titel des Dashboards" id="dashTitleInput" style="width:100%"></ha-textfield>
+                </div>
+                <!-- Spacer for grid alignment if needed, or just let grid flow -->
+                <div></div> 
+
                 <div class="card">
                   <div class="secTitle">Sensoren</div>
                   <div class="muted" style="margin-bottom:16px;">Definiere, welche Sensoren den Alarm auslösen.</div>
@@ -1028,6 +1036,13 @@ class ZigAlarmPanel extends HTMLElement {
       this._panelSelections.siren = a.siren_entity ? [a.siren_entity] : [];
     }
 
+
+    // Dashboard Title
+    const title = a.dashboard_title || "Mein Dashboard";
+    const titleEl = this._$("dashTitle");
+    if (titleEl) titleEl.textContent = title;
+    setField("dashTitleInput", title);
+
     this._renderChips("perimeter");
     this._renderChips("motion");
     this._renderChips("always");
@@ -1193,6 +1208,8 @@ class ZigAlarmPanel extends HTMLElement {
       exit_delay: Number(this._$("exitDelay")?.value || 5),
       entry_delay: Number(this._$("entryDelay")?.value || 5),
       trigger_time: Number(this._$("triggerTime")?.value || 180),
+      trigger_time: Number(this._$("triggerTime")?.value || 180),
+      dashboard_title: String(this._$("dashTitleInput")?.value || "Mein Dashboard"),
     };
 
     try {
