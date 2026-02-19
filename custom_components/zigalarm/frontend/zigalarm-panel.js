@@ -399,8 +399,8 @@ class ZigAlarmPanel extends HTMLElement {
                 <div class="muted" id="openSensorsText" style="margin-top:12px;"></div>
               </div>
               <!-- Placeholder for camera preview or quick stats -->
-              <div class="card" style="display:flex; align-items:center; justify-content:center; border-style:dashed; opacity:0.5;">
-                 <div class="muted">Kamera Preview (optional)</div>
+              <div class="card" id="camPreviewCard" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:200px; padding: 16px;">
+                 <div class="muted">Keine Kameras ausgewählt</div>
               </div>
             </div>
           </div>
@@ -419,7 +419,7 @@ class ZigAlarmPanel extends HTMLElement {
                 <div class="card">
                   <div class="secTitle">Sensoren</div>
                   <div class="muted" style="margin-bottom:16px;">Definiere, welche Sensoren den Alarm auslösen.</div>
-                  ${this._pickerHtml("perimeter", "Außenhaut (Tür/Fenster)")}
+                  ${this._pickerHtml("perimeter", "Türen & Fenster")}
                   <div style="height:20px;"></div>
                   ${this._pickerHtml("motion", "Bewegung (Innen)")}
                   <div style="height:20px;"></div>
@@ -537,7 +537,7 @@ class ZigAlarmPanel extends HTMLElement {
     this._$("btnTrigger").addEventListener("click", () => this._trigger());
 
     // Picker hooks
-    this._hookPicker("perimeter", ["binary_sensor", "sensor", "event"], true, "Außenhaut (Perimeter)");
+    this._hookPicker("perimeter", ["binary_sensor", "sensor", "event"], true, "Türen & Fenster");
     this._hookPicker("motion", ["binary_sensor", "sensor", "event"], true, "Bewegung (Motion)");
     this._hookPicker("always", ["binary_sensor", "sensor", "event"], true, "24/7 Sensoren");
     this._hookPicker("alarmLights", ["light"], true, "Alarm-Lichter");
@@ -940,6 +940,57 @@ class ZigAlarmPanel extends HTMLElement {
     }
 
     if (status) status.textContent = `Verbunden mit ${selected}`;
+
+    // Update Camera Preview
+    this._updateCamPreview(a.camera_entities || []);
+  }
+
+  async _getHelpers() {
+    if (this._helpers) return this._helpers;
+    if (window.loadCardHelpers) {
+      this._helpers = await window.loadCardHelpers();
+      return this._helpers;
+    }
+    return null;
+  }
+
+  async _updateCamPreview(cams) {
+    const card = this._$("camPreviewCard");
+    if (!card) return;
+
+    cams = cams.filter(Boolean);
+    const camStr = JSON.stringify(cams.sort());
+    if (this._lastCamStr === camStr && card.children.length > 0) return;
+    this._lastCamStr = camStr;
+
+    if (!cams || cams.length === 0) {
+      card.innerHTML = `<div class="muted">Keine Kameras ausgewählt</div>`;
+      return;
+    }
+
+    const helpers = await this._getHelpers();
+    if (!helpers) {
+      card.innerHTML = `<div class="muted">Fehler: Karten-Helfer nicht verfügbar</div>`;
+      return;
+    }
+
+    card.innerHTML = "";
+
+    // Create stack for multiple cameras or single card for one
+    const config = {
+      type: "vertical-stack",
+      cards: cams.map(eid => ({
+        type: "picture-entity",
+        entity: eid,
+        show_name: true,
+        show_state: false,
+        camera_view: "auto"
+      }))
+    };
+
+    const el = helpers.createCardElement(config);
+    el.hass = this._hass;
+    card.appendChild(el);
   }
 
   async _save() {
