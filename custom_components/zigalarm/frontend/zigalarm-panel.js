@@ -245,7 +245,23 @@ class ZigAlarmPanel extends HTMLElement {
         .pill-hero[data-state="triggered"] {
           background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.6); color: #fca5a5; animation: pulse 1s infinite;
         }
+        .pill-hero[data-state="triggered"] {
+          background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.6); color: #fca5a5; animation: pulse 1s infinite;
+        }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 15px transparent; } }
+
+        /* Scanner Animation */
+        .scanner-overlay {
+            position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 24px;
+            display: none; z-index: 10;
+        }
+        .scanner-bar {
+            width: 100%; height: 2px; background: rgba(14, 165, 233, 0.8);
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.8), 0 0 20px rgba(14, 165, 233, 0.4);
+            position: absolute; top: 0; animation: scan 3s linear infinite;
+        }
+        .scanner-overlay.active { display: block; }
+        @keyframes scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
 
         /* General UI Elements */
         .btn {
@@ -409,7 +425,8 @@ class ZigAlarmPanel extends HTMLElement {
             </div>
 
             <div class="grid2">
-              <div class="card">
+              <div class="card" style="position:relative;">
+                <div class="scanner-overlay" id="scannerOverlay"><div class="scanner-bar"></div></div>
                 <div class="secTitle">Status</div>
                 <div class="muted" id="statusLine"></div>
                 <div class="muted" id="openSensorsText" style="margin-top:12px;"></div>
@@ -996,6 +1013,37 @@ class ZigAlarmPanel extends HTMLElement {
 
     // Update Camera Preview
     this._updateCamPreview(a.camera_entities || []);
+
+    // Check for state change to trigger specific sounds
+    if (this._lastState !== st.state) {
+      if (st.state === "triggered") this._playSound("alarm");
+      else if (st.state === "disarmed" && (this._lastState === "armed_home" || this._lastState === "armed_away" || this._lastState === "triggered")) this._playSound("disarm");
+      else if (st.state === "armed_home" || st.state === "armed_away") this._playSound("arm");
+      this._lastState = st.state;
+    }
+
+    // Scanner Activation
+    const scanner = this._$("scannerOverlay");
+    if (scanner) {
+      if (st.state === "armed_home" || st.state === "armed_away") scanner.classList.add("active");
+      else scanner.classList.remove("active");
+    }
+  }
+
+  _playSound(type) {
+    // Simple TTS cues
+    const msg = {
+      "arm": "System wird geschärft.",
+      "disarm": "System entschärft. Willkommen.",
+      "alarm": "Achtung! Alarm ausgelöst!"
+    }[type];
+
+    if (msg && window.speechSynthesis) {
+      const u = new SpeechSynthesisUtterance(msg);
+      u.lang = "de-DE";
+      u.rate = 1.0;
+      window.speechSynthesis.speak(u);
+    }
   }
 
   async _getHelpers() {
@@ -1047,6 +1095,7 @@ class ZigAlarmPanel extends HTMLElement {
   }
 
   async _save() {
+    this._playSound("arm"); // Feedback for click
     if (!this._hass) {
       this._setHint("Kein hass verfügbar (bitte Seite neu laden).");
       return;
