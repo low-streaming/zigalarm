@@ -136,11 +136,11 @@ class ZigAlarmPanel extends HTMLElement {
           pointer-events: none; overflow: hidden;
         }
         .bg-blob {
-          position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4;
+          position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5;
           animation: float 20s infinite ease-in-out;
         }
-        .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: var(--za-primary); animation-delay: 0s; }
-        .blob-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: var(--za-accent); animation-delay: -10s; }
+        .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #00d4ff; animation-delay: 0s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: #d946ef; animation-delay: -10s; }
         
         @keyframes float {
           0% { transform: translate(0, 0) scale(1); }
@@ -442,7 +442,9 @@ class ZigAlarmPanel extends HTMLElement {
             <!-- Alarm Entity Selection (Hidden here but needed for logic, kept minimal) -->
             <div style="margin-bottom: 24px; display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03); padding:12px; border-radius:12px; width:fit-content;">
                <div style="font-size:0.9rem; color:var(--za-text-muted);">Aktives System:</div>
-               <select id="alarmEntitySel" style="background:transparent; border:none; color:#fff; font-weight:700; outline:none; cursor:pointer;"><option>Lade...</option></select>
+               <select id="alarmEntitySel" style="background:transparent; border:none; color:#fff; font-weight:700; outline:none; cursor:pointer; min-width:150px;">
+                  <option style="background:#1a1b23; color:white;">Lade...</option>
+               </select>
             </div>
 
             <div class="card">
@@ -907,10 +909,10 @@ class ZigAlarmPanel extends HTMLElement {
     if (!sel) return;
 
     const current = (sel.value || "").trim();
-    sel.innerHTML = alarmList.map((eid) => `< option value = "${eid}" > ${eid}</option > `).join("");
+    sel.innerHTML = alarmList.map((eid) => `<option value="${eid}" style="background:#1a1b23; color:white;">${eid}</option>`).join("");
 
     if (current && alarmList.includes(current)) sel.value = current;
-    else if (alarmList[0]) sel.value = alarmList[0];
+    else if (alarmList[0]) { sel.value = alarmList[0]; } // Auto-select first
   }
 
   async _arm(mode) {
