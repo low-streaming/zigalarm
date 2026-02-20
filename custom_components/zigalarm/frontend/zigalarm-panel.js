@@ -605,6 +605,24 @@ class ZigAlarmPanel extends HTMLElement {
                  </div>
               </div>
             </div>
+
+            <div class="card" style="text-align: center; border-color: rgba(245, 158, 11, 0.2);">
+              <div style="font-size: 1.2rem; font-weight: 800; color: #f59e0b; margin-bottom: 24px; text-align: left; display: flex; align-items: center; gap: 8px;">
+                💛 Support & Spenden
+              </div>
+              <p class="muted" style="margin-bottom: 24px;">
+                Gefällt dir das Projekt? Unterstütze die Weiterentwicklung mit einer Spende!
+              </p>
+              <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=info@low-streaming.de&currency_code=EUR" target="_blank" style="text-decoration: none; display: inline-block;">
+                <button class="btn" style="background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%); color: #0f172a; border: none; font-weight: 800; font-size: 1rem; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4); margin-bottom: 16px; padding: 12px 32px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                  ☕ Jetzt Spenden
+                </button>
+              </a>
+              <div class="muted" style="font-size: 0.85rem;">
+                PayPal: info@low-streaming.de
+              </div>
+            </div>
+
           </div>
 
         </div>
