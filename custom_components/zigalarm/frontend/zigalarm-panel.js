@@ -405,6 +405,19 @@ class ZigAlarmPanel extends HTMLElement {
         .item { padding: 12px 16px; background: rgba(255,255,255,0.05); border-radius: 12px; cursor: pointer; }
         .item:hover { background: rgba(255,255,255,0.1); }
         .modalFoot { padding: 20px; border-top: 1px solid var(--za-border); display: flex; justify-content: flex-end; gap: 10px; }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+          .navbar { padding: 0 16px; flex-direction: column; height: auto; padding-top: 16px; padding-bottom: 16px; gap: 16px; }
+          .main-content { padding: 16px; }
+          .grid2 { grid-template-columns: 1fr; }
+          .dash-hero { flex-direction: column; align-items: flex-start; gap: 16px; }
+          .card { padding: 20px; }
+          .btn { padding: 12px 20px; font-size: 0.9rem; }
+          .modal { width: 95%; max-height: 90vh; }
+          .nav-tabs { flex-wrap: wrap; justify-content: center; }
+          .nav-item { padding: 8px 16px; font-size: 0.8rem; }
+        }
       </style>
 
       <div class="bg-fx">
