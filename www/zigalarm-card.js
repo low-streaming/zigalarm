@@ -1,10 +1,10 @@
 /**
- * ZigAlarm Infinity Edition V2.0
+ * ZigAlarm Infinity Edition V2.2
  * Premium Security Layer for Home Assistant
- * Powered by OpenKairo OS
+ * Deutsche Version // Infinity Edition // Tactical HUD
  */
 
-console.log("%c 🛡️ ZIGALARM INFINITY LOADING ", "background: #0ea5e9; color: #fff; font-weight: bold; padding: 5px;");
+console.log("%c 🛡️ ZIGALARM INFINITY V2.2 LOADING ", "background: #0ea5e9; color: #fff; font-weight: bold; padding: 5px;");
 
 class ZigAlarmCard extends HTMLElement {
   constructor() {
@@ -24,7 +24,7 @@ class ZigAlarmCard extends HTMLElement {
 
   // ---- HA card API ----
   setConfig(config) {
-    if (!config) throw new Error("Config fehlt");
+    if (!config) throw new Error("Konfiguration fehlt");
     const alarmEntity = (config.alarm_entity || config.entity || "").trim();
     if (!alarmEntity) throw new Error("alarm_entity fehlt");
 
@@ -39,7 +39,7 @@ class ZigAlarmCard extends HTMLElement {
       popup_on_trigger: config.popup_on_trigger ?? true,
       popup_only_when_triggered: config.popup_only_when_triggered ?? true,
       popup_auto_close_on_disarm: config.popup_auto_close_on_disarm ?? true,
-      popup_title: config.popup_title || "TACTICAL MONITORING",
+      popup_title: config.popup_title || "TAKTIISCHE ÜBERWACHUNG",
     };
 
     this._update();
@@ -53,7 +53,7 @@ class ZigAlarmCard extends HTMLElement {
     if (newState && this._lastAlarmState !== newState) {
       this._handleAlarmTransition(this._lastAlarmState, newState, st);
       this._lastAlarmState = newState;
-      this._addLog(`SYSTEM STATE: ${newState.toUpperCase()}`, newState === 'triggered' ? 'danger' : 'info');
+      this._addLog(`SYSTEM-STATUS: ${newState.toUpperCase()}`, newState === 'triggered' ? 'danger' : 'info');
     } else if (!this._lastAlarmState && newState) {
       this._lastAlarmState = newState;
     }
@@ -207,15 +207,21 @@ class ZigAlarmCard extends HTMLElement {
 
         /* Popup Tactical Monitor */
         dialog.tactical-monitor {
-          background: rgba(5, 7, 12, 0.9); backdrop-filter: blur(50px) saturate(200%); border: 2px solid var(--za-danger);
-          border-radius: 40px; padding: 0; max-width: 95vw; width: 1100px; color: #fff;
+          background: rgba(5, 7, 12, 0.95); backdrop-filter: blur(50px) saturate(200%); border: 2px solid var(--za-danger);
+          border-radius: 40px; padding: 0; max-width: 95vw; width: 1200px; color: #fff;
           box-shadow: 0 0 150px rgba(255, 0, 60, 0.4); overflow: hidden;
         }
         .monitor-head { padding: 30px 40px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
         .monitor-title { font-family: var(--font-tech); font-size: 1.6rem; font-weight: 900; letter-spacing: 6px; color: var(--za-danger); text-shadow: 0 0 20px var(--za-danger); }
         .monitor-close { width: 50px; height: 50px; background: rgba(255,255,255,0.05); border-radius: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; }
         .monitor-close:hover { background: var(--za-danger); transform: rotate(90deg); }
-        .monitor-body { padding: 40px; }
+        .monitor-body { padding: 40px; position: relative; }
+        
+        /* HUD Overlay */
+        .hud-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; border: 40px solid transparent; border-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M0 20 V0 H20 M80 0 H100 V20 M100 80 V100 H80 M20 100 H0 V80" fill="none" stroke="red" stroke-width="2"/></svg>') 40 stretch; opacity: 0.6; }
+        .hud-scanner { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: var(--za-danger); box-shadow: 0 0 20px var(--za-danger); animation: hudScan 4s linear infinite; }
+        @keyframes hudScan { from { top: 0%; } to { top: 100%; } }
+
         .trig-info { 
           background: rgba(255, 0, 60, 0.1); border: 1.5px solid rgba(255, 0, 60, 0.4); border-radius: 20px; padding: 30px;
           margin-bottom: 35px; text-align: center; position: relative; overflow: hidden;
@@ -224,6 +230,8 @@ class ZigAlarmCard extends HTMLElement {
         .trig-label { font-size: 0.85rem; font-weight: 900; text-transform: uppercase; letter-spacing: 5px; color: var(--za-danger); margin-bottom: 10px; display: block; opacity: 0.8; }
         .trig-val { font-family: var(--font-tech); font-size: 2.2rem; font-weight: 900; letter-spacing: 2px; }
         
+        .cam-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; }
+
         .footer { text-align: center; margin-top: 35px; font-size: 0.75rem; font-weight: 900; letter-spacing: 3px; color: rgba(255,255,255,0.15); font-family: var(--font-tech); }
         .footer a { color: var(--za-primary); text-decoration: none; border-bottom: 1px solid transparent; transition: 0.3s; }
         .footer a:hover { border-bottom-color: var(--za-primary); }
@@ -232,6 +240,7 @@ class ZigAlarmCard extends HTMLElement {
           .info-grid { grid-template-columns: 1fr; }
           .actions { grid-template-columns: repeat(2, 1fr); }
           .monitor-title { font-size: 1.1rem; letter-spacing: 3px; }
+          .cam-grid { grid-template-columns: 1fr; }
         }
       </style>
 
@@ -239,7 +248,7 @@ class ZigAlarmCard extends HTMLElement {
         <div class="matrix-bg"></div>
         <div class="scanline"></div>
         <div class="glitch-overlay"></div>
-        <div class="card-content" id="content">INITIALIZING SECURITY INTERFACE...</div>
+        <div class="card-content" id="content">INITIALISIERE SICHERHEITSSYSTEM...</div>
       </ha-card>
     `;
   }
@@ -259,19 +268,19 @@ class ZigAlarmCard extends HTMLElement {
   }
 
   _armHome() { 
-    this._addLog("INITIATING ARM HOME...", "info");
+    this._addLog("AKTIVIERE ZUHAUSE-MODUS...", "info");
     return this._call("alarm_control_panel", "alarm_arm_home", { entity_id: this._config.alarm_entity }); 
   }
   _armAway() { 
-    this._addLog("INITIATING ARM AWAY...", "info");
+    this._addLog("AKTIVIERE ABWESEND-MODUS...", "info");
     return this._call("alarm_control_panel", "alarm_arm_away", { entity_id: this._config.alarm_entity }); 
   }
   _disarm() { 
-    this._addLog("SYSTEM DISARM REQUESTED", "warning");
+    this._addLog("SYSTEM-DEAKTIVIERUNG ANGEFORDERT", "warning");
     return this._call("alarm_control_panel", "alarm_disarm", { entity_id: this._config.alarm_entity }); 
   }
   _trigger() { 
-    this._addLog("PANIC TRIGGER ACTIVATED!", "danger");
+    this._addLog("PANIK-ALARM AKTIVIERT!", "danger");
     return this._call("alarm_control_panel", "alarm_trigger", { entity_id: this._config.alarm_entity }); 
   }
 
@@ -289,31 +298,28 @@ class ZigAlarmCard extends HTMLElement {
     const helpers = await this._getHelpers();
     if (!helpers || !cams || cams.length === 0) return null;
 
-    const mode = String(this._config.camera_card || "picture-entity");
-    if (mode === "picture-glance") {
-      const el = helpers.createCardElement({ type: "picture-glance", title: this._config.popup_title, camera_image: cams[0], entities: [] });
-      el.hass = this._hass;
-      return el;
-    }
+    const container = document.createElement("div");
+    container.className = "cam-grid";
 
-    const el = helpers.createCardElement({ 
-      type: "vertical-stack", 
-      cards: cams.map(cam => ({ 
+    for (const cam of cams) {
+      const el = helpers.createCardElement({ 
         type: "picture-entity", 
         entity: cam, 
         camera_image: cam, 
         show_name: true, 
         show_state: false, 
         camera_view: "auto" 
-      })) 
-    });
-    el.hass = this._hass;
-    return el;
+      });
+      el.hass = this._hass;
+      container.appendChild(el);
+    }
+    
+    return container;
   }
 
   async _openCameraPopup(attrs) {
     const trigEid = attrs.last_trigger_entity;
-    let trigName = "PERIMETER BREACH";
+    let trigName = "PERIMETER-VERLETZUNG";
     if (trigEid && this._hass.states[trigEid]) {
       trigName = this._hass.states[trigEid].attributes.friendly_name || trigEid;
     }
@@ -324,12 +330,13 @@ class ZigAlarmCard extends HTMLElement {
       dlg.className = "tactical-monitor";
       dlg.innerHTML = `
         <div class="monitor-head">
-          <div class="monitor-title">TACTICAL SURVEILLANCE FEED</div>
+          <div class="monitor-title">TAKTIISCHER ÜBERWACHUNGS-FEED</div>
           <div class="monitor-close"><ha-icon icon="mdi:close" style="--mdc-icon-size:30px;"></ha-icon></div>
         </div>
         <div class="monitor-body">
+          <div class="hud-layer"><div class="hud-scanner"></div></div>
           <div class="dlg-info"></div>
-          <div class="dlg-cards" style="display:grid; gap:20px;"></div>
+          <div class="dlg-cards"></div>
         </div>
       `;
       dlg.querySelector(".monitor-close").onclick = () => dlg.close();
@@ -341,7 +348,7 @@ class ZigAlarmCard extends HTMLElement {
     const infoBox = this._popup.querySelector(".dlg-info");
     infoBox.innerHTML = trigEid ? `
       <div class="trig-info">
-        <span class="trig-label">INTRUSION DETECTED AT</span>
+        <span class="trig-label">INTRUSION ERKANNT AN</span>
         <span class="trig-val">${trigName.toUpperCase()}</span>
       </div>` : "";
 
@@ -351,7 +358,7 @@ class ZigAlarmCard extends HTMLElement {
       const camCard = await this._buildCameraCardElement(cams);
       if (camCard) box.appendChild(camCard);
     } else {
-      box.innerHTML = `<div style="text-align:center; padding:60px; color:#333; font-family:var(--font-tech); font-weight:900; letter-spacing:4px;">NO ACTIVE VIDEO NODES FOUND</div>`;
+      box.innerHTML = `<div style="text-align:center; padding:60px; color:#ff003c; font-family:var(--font-tech); font-weight:900; letter-spacing:4px; opacity:0.6;">KEINE AKTIVEN VIDEO-KNOTEN GEFUNDEN</div>`;
     }
 
     if (!this._popup.open) this._popup.showModal();
@@ -361,7 +368,7 @@ class ZigAlarmCard extends HTMLElement {
 
   _updatePopupHass() {
     if (!this._popup || !this._popup.open) return;
-    this._popup.querySelectorAll(".dlg-cards > *").forEach(el => { try { el.hass = this._hass; } catch(e){} });
+    this._popup.querySelectorAll(".dlg-cards *").forEach(el => { try { el.hass = this._hass; } catch(e){} });
   }
 
   _handleAlarmTransition(oldState, newState, st) {
@@ -384,17 +391,19 @@ class ZigAlarmCard extends HTMLElement {
 
     const st = this._st();
     if (!st) {
-      content.innerHTML = `<div style="color:var(--za-danger); padding:20px; font-weight:bold; font-family:var(--font-tech);">CRITICAL: ENTITY NOT FOUND<br/>${this._config.alarm_entity}</div>`;
+      content.innerHTML = `<div style="color:var(--za-danger); padding:20px; font-weight:bold; font-family:var(--font-tech);">KRITISCH: ENTITÄT NICHT GEFUNDEN<br/>${this._config.alarm_entity}</div>`;
       return;
     }
 
-    const state = String(st.state).toLowerCase();
+    const stateRaw = String(st.state).toLowerCase();
+    const state = stateRaw === 'disarmed' ? 'unscharf' : stateRaw === 'armed_home' ? 'zuhause' : stateRaw === 'armed_away' ? 'abwesend' : stateRaw === 'triggered' ? 'ALARM' : stateRaw === 'pending' ? 'verzögerung' : stateRaw;
+
     const attrs = st.attributes || {};
     const openSensors = Array.isArray(attrs.open_sensors) ? attrs.open_sensors : [];
     const readyHome = attrs.ready_to_arm_home;
     const readyAway = attrs.ready_to_arm_away;
 
-    if (state === "triggered") card.classList.add("triggered");
+    if (stateRaw === "triggered") card.classList.add("triggered");
     else card.classList.remove("triggered");
 
     const cams = this._getCameras(attrs);
@@ -406,61 +415,61 @@ class ZigAlarmCard extends HTMLElement {
           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
           <div>${this._config.name}</div>
         </div>
-        <div class="status-pill ${state.includes('armed') ? 'armed' : state}" id="status-pill">
-          ${state.replace('_', ' ')}
+        <div class="status-pill ${stateRaw.includes('armed') ? 'armed' : stateRaw}" id="status-pill">
+          ${state.toUpperCase()}
         </div>
       </div>
 
       <div id="sys-log"></div>
 
       <div class="actions">
-        <button class="btn-action ${state === 'armed_home' ? 'active' : ''}" id="btnHome" title="ARM HOME">
+        <button class="btn-action ${stateRaw === 'armed_home' ? 'active' : ''}" id="btnHome" title="ZUHAUSE SCHARF">
           <ha-icon icon="mdi:home-shield"></ha-icon>
-          <span>Home</span>
+          <span>Zuhause</span>
         </button>
-        <button class="btn-action ${state === 'armed_away' ? 'active' : ''}" id="btnAway" title="ARM AWAY">
+        <button class="btn-action ${stateRaw === 'armed_away' ? 'active' : ''}" id="btnAway" title="ABWESEND SCHARF">
           <ha-icon icon="mdi:shield-lock"></ha-icon>
-          <span>Away</span>
+          <span>Abwesend</span>
         </button>
-        <button class="btn-action ${state === 'disarmed' ? 'active' : ''}" id="btnDisarm" title="DISARM">
+        <button class="btn-action ${stateRaw === 'disarmed' ? 'active' : ''}" id="btnDisarm" title="UNSCHARF">
           <ha-icon icon="mdi:shield-off"></ha-icon>
-          <span>Disarm</span>
+          <span>Unscharf</span>
         </button>
-        <button class="btn-action danger" id="btnTrig" title="PANIC TRIGGER">
+        <button class="btn-action danger" id="btnTrig" title="PANIK-ALARM">
           <ha-icon icon="mdi:alert-octagon"></ha-icon>
-          <span>Panic</span>
+          <span>Panik</span>
         </button>
       </div>
 
       ${hasCams ? `<button class="btn-action" id="btnCams" style="width:100%; margin-bottom:30px; flex-direction:row; padding:18px; border-radius:20px; background:rgba(255,255,255,0.05); border-color:rgba(14, 165, 233, 0.4);">
         <ha-icon icon="mdi:video-security" style="color:var(--za-primary);"></ha-icon>
-        <span style="color:white; margin-left:10px;">TACTICAL SURVEILLANCE FEED</span>
+        <span style="color:white; margin-left:10px;">TAKTIISCHER ÜBERWACHUNGS-FEED</span>
       </button>` : ''}
 
       <div class="info-grid">
         <div class="info-box">
-          <h4>Security Matrix</h4>
+          <h4>Sicherheitsmatrix</h4>
           <div class="status-row ${readyHome ? 'ok' : 'warn'}">
-            <div class="dot"></div> <span>Ready for Home</span>
+            <div class="dot"></div> <span>Bereit (Zuhause)</span>
           </div>
           <div class="status-row ${readyAway ? 'ok' : 'warn'}">
-            <div class="dot"></div> <span>Ready for Away</span>
+            <div class="dot"></div> <span>Bereit (Abwesend)</span>
           </div>
           ${attrs.last_trigger_entity ? `<div style="font-size:0.55rem; opacity:0.3; font-family:var(--font-mono); margin-top:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">[L-TRG] ${attrs.last_trigger_entity}</div>` : ''}
         </div>
 
         <div class="info-box">
-          <h4>Vulnerabilities</h4>
+          <h4>Schwachstellen</h4>
           ${openSensors.length ? `
             <div class="sensor-list">
               ${openSensors.slice(0, 3).map(s => `<div class="sensor-item">${s}</div>`).join('')}
-              ${openSensors.length > 3 ? `<div style="font-size:0.6rem; opacity:0.5; font-weight:700; color:var(--za-danger);">+ ${openSensors.length - 3} NODES ACTIVE</div>` : ''}
+              ${openSensors.length > 3 ? `<div style="font-size:0.6rem; opacity:0.5; font-weight:700; color:var(--za-danger);">+ ${openSensors.length - 3} WEITERE KNOTEN</div>` : ''}
             </div>
-          ` : `<div class="all-clear">PERIMETER SECURE</div>`}
+          ` : `<div class="all-clear">PERIMETER GESICHERT</div>`}
         </div>
       </div>
 
-      <div class="footer">ENCRYPTED CONNECTION // <a href="https://openkairo.de" target="_blank">OPENKAIRO</a></div>
+      <div class="footer">VERSCHLÜSSELTE VERBINDUNG // <a href="https://openkairo.de" target="_blank">OPENKAIRO</a></div>
     `;
 
     this._updateLogUI();
