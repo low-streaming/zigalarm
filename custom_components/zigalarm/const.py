@@ -28,6 +28,7 @@ OPT_LIGHT_RESTORE = "alarm_light_restore"
 OPT_CAMERAS = "camera_entities"
 OPT_CAMERA_SHOW_ONLY_TRIGGERED = "camera_show_only_triggered"
 OPT_FORCE_ARM = "force_arm"
+OPT_SENSOR_MAPPINGS = "sensor_mappings"
 
 # keypad (optional)
 OPT_KEYPAD_ENABLED = "keypad_enabled"

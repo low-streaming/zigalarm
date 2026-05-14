@@ -1,7 +1,7 @@
 /**
- * ZigAlarm Infinity Panel V2.3
+ * ZigAlarm Infinity Panel V2.4
  * Premium Security Management Interface
- * Deutsche Version // Infinity Edition // Backup Tool
+ * Deutsche Version // Infinity Edition // Manual Mapping Tool
  */
 
 const fireEvent = (node, type, detail = {}, options = {}) => {
@@ -60,6 +60,7 @@ class ZigAlarmPanel extends HTMLElement {
   _render() {
     this._root = this.attachShadow({ mode: "open" });
     this._activeTab = "dashboard";
+    this._sensorMappings = {};
 
     this._root.innerHTML = `
       <style>
@@ -230,8 +231,9 @@ class ZigAlarmPanel extends HTMLElement {
         .node-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .node-card {
           background: rgba(255,255,255,0.03); border: 1px solid var(--za-glass-border); border-radius: 25px; padding: 20px;
-          display: flex; flex-direction: column; gap: 15px; position: relative;
+          display: flex; flex-direction: column; gap: 15px; position: relative; cursor: pointer; transition: 0.3s;
         }
+        .node-card:hover { border-color: var(--za-primary); background: rgba(14, 165, 233, 0.05); transform: translateY(-5px); }
         .node-name { font-weight: 800; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .node-meta { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.7rem; opacity: 0.5; }
         .node-stats { display: flex; gap: 15px; align-items: center; }
@@ -366,7 +368,7 @@ class ZigAlarmPanel extends HTMLElement {
              <div class="dash-hero">
                 <div class="hero-title">
                   <h1>Knoten-Status</h1>
-                  <div class="muted">Überwachung der Hardware-Integrität</div>
+                  <div class="muted">Klicken zum manuellen Zuweisen von Batterie/Signal</div>
                 </div>
              </div>
              <div class="node-grid" id="nodeHealthGrid"></div>
@@ -448,36 +450,8 @@ class ZigAlarmPanel extends HTMLElement {
           <div id="tab-info" class="tab-view">
             <div class="card" style="text-align:center; padding:80px 40px;">
               <h1 class="brand" style="justify-content:center; font-size:4rem; margin-bottom:15px;">ZIG<span>ALARM</span></h1>
-              <div style="font-family:var(--font-tech); letter-spacing:10px; font-weight:900; color:var(--za-primary);">INFINITY EDITION V2.3</div>
+              <div style="font-family:var(--font-tech); letter-spacing:10px; font-weight:900; color:var(--za-primary);">INFINITY EDITION V2.4</div>
               <div id="hintLine" style="margin: 40px auto; font-family:var(--font-mono); font-size:0.9rem; font-weight:700; color:var(--za-primary);">SYSTEM STATUS: GESICHERT</div>
-            </div>
-
-            <div class="grid2">
-              <div class="card">
-                 <div class="secTitle">Kern-Logik</div>
-                 <p style="line-height:1.8; opacity:0.6; font-size:0.95rem;">
-                   ZigAlarm Infinity transformiert deine Standard Home Assistant Knoten in eine militärische Sicherheitsmatrix. 
-                   Durch Multi-Layer-Sensoranalyse und Echtzeit-Statusüberwachung garantieren wir eine Bedrohungserkennung ohne Latenz.
-                 </p>
-              </div>
-
-              <div class="card">
-                 <div class="secTitle">Knoten-Kategorien</div>
-                 <div style="display:flex; flex-direction:column; gap:25px;">
-                   <div>
-                     <div style="color:var(--za-primary); font-family:var(--font-tech); font-weight:900; letter-spacing:2px; font-size:0.8rem;">PERIMETER</div>
-                     <div style="opacity:0.5; font-size:0.85rem; margin-top:5px;">Türen und Fenster. Werden in den Zuständen ZUHAUSE und ABWESEND überwacht.</div>
-                   </div>
-                   <div>
-                     <div style="color:var(--za-primary); font-family:var(--font-tech); font-weight:900; letter-spacing:2px; font-size:0.8rem;">VOLUMETRISCH</div>
-                     <div style="opacity:0.5; font-size:0.85rem; margin-top:5px;">Bewegungsmelder. Werden nur im Zustand ABWESEND überwacht für maximale Freiheit.</div>
-                   </div>
-                   <div>
-                     <div style="color:var(--za-danger); font-family:var(--font-tech); font-weight:900; letter-spacing:2px; font-size:0.8rem;">KRITISCH</div>
-                     <div style="opacity:0.5; font-size:0.85rem; margin-top:5px;">24/7 Überwachung. Rauch, Wasser, Gas. Immer aktiv.</div>
-                   </div>
-                 </div>
-              </div>
             </div>
           </div>
         </div>
@@ -501,6 +475,27 @@ class ZigAlarmPanel extends HTMLElement {
              <div class="modalFoot">
                <button class="nav-item" id="pickerClear" style="margin-right:auto; color:var(--za-danger);">AUSWAHL LÖSCHEN</button>
                <button class="btn-prime" id="pickerDone">ÜBERNEHMEN</button>
+             </div>
+           </div>
+        </div>
+
+        <!-- Node Mapping Modal -->
+        <div class="modalBack" id="mapModal">
+           <div class="modal">
+             <div class="modalHead">
+               <div class="modalTitle">KNOTEN-MAPPING</div>
+               <button class="btn-action" id="mapClose" style="padding:10px; border-radius:15px;"><ha-icon icon="mdi:close"></ha-icon></button>
+             </div>
+             <div class="modalBody">
+                <div id="mapTargetName" style="font-weight:900; color:var(--za-primary); margin-bottom:25px;"></div>
+                <div style="font-size:0.7rem; font-family:var(--font-tech); letter-spacing:2px; opacity:0.5; margin-bottom:10px;">BATTERIE KNOTEN</div>
+                <button class="pickBtn" id="mapBatBtn">WÄHLEN...</button>
+                <div style="font-size:0.7rem; font-family:var(--font-tech); letter-spacing:2px; opacity:0.5; margin:25px 0 10px 0;">SIGNAL (LQI) KNOTEN</div>
+                <button class="pickBtn" id="mapLqiBtn">WÄHLEN...</button>
+             </div>
+             <div class="modalFoot">
+                <button class="nav-item" id="mapReset" style="color:var(--za-danger);">MAPPING LÖSCHEN</button>
+                <button class="btn-prime" style="margin-left:auto;" id="mapSave">SPEICHERN</button>
              </div>
            </div>
         </div>
@@ -551,6 +546,38 @@ class ZigAlarmPanel extends HTMLElement {
 
     this._$("exportBtn").addEventListener("click", () => this._exportConfig());
     this._$("importBtn").addEventListener("click", () => this._importConfig());
+
+    // Map Modal logic
+    this._$("mapClose").onclick = () => this._$("mapModal").classList.remove("open");
+    this._$("mapReset").onclick = () => {
+       if (this._mapTarget) {
+          delete this._sensorMappings[this._mapTarget];
+          this._renderMapModal();
+       }
+    };
+    this._$("mapSave").onclick = () => this._$("mapModal").classList.remove("open");
+    this._$("mapBatBtn").onclick = () => this._openPicker({ 
+       key: `map_bat_${this._mapTarget}`, 
+       domains: ["sensor"], 
+       multi: false, 
+       title: "BATTERIE KNOTEN WÄHLEN",
+       callback: (eid) => {
+          if (!this._sensorMappings[this._mapTarget]) this._sensorMappings[this._mapTarget] = {};
+          this._sensorMappings[this._mapTarget].battery = eid;
+          this._renderMapModal();
+       }
+    });
+    this._$("mapLqiBtn").onclick = () => this._openPicker({ 
+       key: `map_lqi_${this._mapTarget}`, 
+       domains: ["sensor"], 
+       multi: false, 
+       title: "SIGNAL KNOTEN WÄHLEN",
+       callback: (eid) => {
+          if (!this._sensorMappings[this._mapTarget]) this._sensorMappings[this._mapTarget] = {};
+          this._sensorMappings[this._mapTarget].lqi = eid;
+          this._renderMapModal();
+       }
+    });
   }
 
   _pickerHtml(key, title) {
@@ -569,8 +596,8 @@ class ZigAlarmPanel extends HTMLElement {
     pickBtn.addEventListener("click", () => this._openPicker({ key, domains, multi, title }));
   }
 
-  _openPicker({ key, domains, multi, title }) {
-    this._currentPick = { key, domains, multi, title };
+  _openPicker({ key, domains, multi, title, callback }) {
+    this._currentPick = { key, domains, multi, title, callback };
     const back = this._$("pickerBack");
     if (!back) return;
     this._$("pickerTitle").textContent = title;
@@ -585,7 +612,7 @@ class ZigAlarmPanel extends HTMLElement {
   _renderPickerList() {
     const listEl = this._$("pickerList");
     if (!listEl) return;
-    const { key, domains, multi } = this._currentPick || {};
+    const { key, domains, multi, callback } = this._currentPick || {};
     if (!key || !this._hass) return;
 
     const q = (this._$("pickerSearch")?.value || "").trim().toLowerCase();
@@ -620,6 +647,11 @@ class ZigAlarmPanel extends HTMLElement {
     listEl.querySelectorAll(".item[data-eid]").forEach((el) => {
       el.addEventListener("click", () => {
         const eid = el.getAttribute("data-eid");
+        if (callback) {
+           callback(eid);
+           this._closePicker();
+           return;
+        }
         if (multi) {
           const cur = uniq(this._panelSelections?.[key] || []);
           if (cur.includes(eid)) this._panelSelections[key] = cur.filter(x => x !== eid);
@@ -733,6 +765,7 @@ class ZigAlarmPanel extends HTMLElement {
 
     const a = st.attributes || {};
     if (pill) { pill.textContent = stateToDE(st.state); pill.setAttribute("data-state", st.state); }
+    this._sensorMappings = a.sensor_mappings || {};
 
     const isReady = a.ready_to_arm_home && a.ready_to_arm_away;
     if (readyLine) {
@@ -741,8 +774,6 @@ class ZigAlarmPanel extends HTMLElement {
     }
 
     this._setHint("SYSTEM ONLINE // VERSCHLÜSSELTE VERBINDUNG");
-
-    // Countdown logic
     this._updateCountdown(st);
 
     const ensure = (k, def) => { if (!Array.isArray(this._panelSelections[k]) || this._panelSelections[k].length === 0) this._panelSelections[k] = uniq(def); };
@@ -793,13 +824,8 @@ class ZigAlarmPanel extends HTMLElement {
     const scanner = this._$("scannerOverlay");
     const matrix = this._$("matrixBg");
     if (scanner) {
-      if (st.state.includes("armed")) {
-        scanner.classList.add("active");
-        matrix?.classList.add("pulse");
-      } else {
-        scanner.classList.remove("active");
-        matrix?.classList.remove("pulse");
-      }
+      if (st.state.includes("armed")) { scanner.classList.add("active"); matrix?.classList.add("pulse"); }
+      else { scanner.classList.remove("active"); matrix?.classList.remove("pulse"); }
     }
 
     if (this._activeTab === 'health') this._updateHealthGrid();
@@ -810,17 +836,10 @@ class ZigAlarmPanel extends HTMLElement {
     const circle = this._$("countdownCircle");
     const text = this._$("countdownText");
     if (!el || !circle || !text) return;
-
     const state = st.state;
     const delay = (state === 'pending') ? st.attributes.entry_delay : (state === 'arming') ? st.attributes.exit_delay : 0;
-    
-    if (delay > 0) {
-      el.classList.add("active");
-      text.textContent = delay;
-      circle.style.strokeDashoffset = 0; 
-    } else {
-      el.classList.remove("active");
-    }
+    if (delay > 0) { el.classList.add("active"); text.textContent = delay; circle.style.strokeDashoffset = 0; }
+    else { el.classList.remove("active"); }
   }
 
   _updateHealthGrid() {
@@ -842,13 +861,35 @@ class ZigAlarmPanel extends HTMLElement {
       const st = this._hass.states[eid];
       if (!st) return "";
       
-      const battery = st.attributes.battery_level ?? st.attributes.battery ?? null;
-      const lqi = st.attributes.linkquality ?? null;
+      let battery = st.attributes.battery_level ?? st.attributes.battery ?? null;
+      let lqi = st.attributes.linkquality ?? null;
+      
+      // Manual Mapping Override
+      const map = this._sensorMappings?.[eid];
+      if (map) {
+         if (map.battery && this._hass.states[map.battery]) battery = parseFloat(this._hass.states[map.battery].state);
+         if (map.lqi && this._hass.states[map.lqi]) lqi = parseFloat(this._hass.states[map.lqi].state);
+      }
+
+      // Smart Discovery if still null
+      if (battery === null || lqi === null) {
+        const baseId = eid.split(".")[1] || "";
+        const potentialSiblings = Object.keys(this._hass.states).filter(s => s.includes(baseId) && s !== eid);
+        if (battery === null) {
+          const batEid = potentialSiblings.find(s => s.endsWith("_battery") || s.endsWith("_battery_level"));
+          if (batEid) battery = parseFloat(this._hass.states[batEid]?.state);
+        }
+        if (lqi === null) {
+          const lqiEid = potentialSiblings.find(s => s.endsWith("_linkquality") || s.endsWith("_lqi") || s.endsWith("_rssi"));
+          if (lqiEid) lqi = parseFloat(this._hass.states[lqiEid]?.state);
+        }
+      }
+
       const fn = st.attributes.friendly_name || eid;
       const online = st.state !== 'unavailable';
 
       return `
-        <div class="node-card">
+        <div class="node-card" data-eid="${eid}">
           <div class="node-name">${fn}</div>
           <div class="node-meta">
             <span>${eid}</span>
@@ -857,21 +898,38 @@ class ZigAlarmPanel extends HTMLElement {
           <div class="node-stats">
             <ha-icon icon="mdi:battery-high" style="opacity:0.5; --mdc-icon-size:18px;"></ha-icon>
             <div class="stat-bar"><div class="stat-fill ${battery < 20 ? 'low' : battery < 50 ? 'mid' : ''}" style="width:${battery ?? 0}%"></div></div>
-            <div class="stat-label">${battery !== null ? battery + '%' : 'N/A'}</div>
+            <div class="stat-label">${(battery !== null && !isNaN(battery)) ? Math.round(battery) + '%' : 'N/A'}</div>
           </div>
           <div class="node-stats">
             <ha-icon icon="mdi:wifi" style="opacity:0.5; --mdc-icon-size:18px;"></ha-icon>
             <div class="stat-bar"><div class="stat-fill" style="width:${(lqi / 255) * 100 || 0}%"></div></div>
-            <div class="stat-label">${lqi ?? 'N/A'}</div>
+            <div class="stat-label">${(lqi !== null && !isNaN(lqi)) ? Math.round(lqi) : 'N/A'}</div>
           </div>
         </div>
       `;
     }).join("");
+
+    grid.querySelectorAll(".node-card").forEach(card => {
+       card.onclick = () => this._openMapModal(card.getAttribute("data-eid"));
+    });
+  }
+
+  _openMapModal(eid) {
+     this._mapTarget = eid;
+     this._renderMapModal();
+     this._$("mapModal").classList.add("open");
+  }
+
+  _renderMapModal() {
+     const eid = this._mapTarget;
+     const map = this._sensorMappings[eid] || {};
+     this._$("mapTargetName").textContent = this._friendlyName(eid);
+     this._$("mapBatBtn").textContent = map.battery ? this._friendlyName(map.battery) : "KLICKEN ZUM WÄHLEN...";
+     this._$("mapLqiBtn").textContent = map.lqi ? this._friendlyName(map.lqi) : "KLICKEN ZUM WÄHLEN...";
   }
 
   _exportConfig() {
-    const area = this._$("configJson");
-    if (!area) return;
+    const area = this._$("configJson"); if (!area) return;
     const data = {
       perimeter: this._panelSelections?.perimeter || [],
       motion: this._panelSelections?.motion || [],
@@ -879,6 +937,7 @@ class ZigAlarmPanel extends HTMLElement {
       siren: this._panelSelections?.siren || [],
       alarmLights: this._panelSelections?.alarmLights || [],
       cams: this._panelSelections?.cams || [],
+      sensor_mappings: this._sensorMappings,
       settings: {
         color: this._$("lightColor")?.value,
         bright: this._$("lightBrightness")?.value,
@@ -891,18 +950,12 @@ class ZigAlarmPanel extends HTMLElement {
         time: this._$("triggerTime")?.value,
       }
     };
-    area.value = JSON.stringify(data, null, 2);
-    area.style.display = 'block';
+    area.value = JSON.stringify(data, null, 2); area.style.display = 'block';
     this._setHint("KONFIGURATION EXPORTIERT ✅");
   }
 
   _importConfig() {
-    const area = this._$("configJson");
-    if (!area || !area.value) {
-      if (area) area.style.display = 'block';
-      this._setHint("WARNUNG: JSON EINFÜGEN");
-      return;
-    }
+    const area = this._$("configJson"); if (!area || !area.value) { if (area) area.style.display = 'block'; this._setHint("WARNUNG: JSON EINFÜGEN"); return; }
     try {
       const d = JSON.parse(area.value);
       this._panelSelections.perimeter = d.perimeter || [];
@@ -911,7 +964,7 @@ class ZigAlarmPanel extends HTMLElement {
       this._panelSelections.siren = d.siren || [];
       this._panelSelections.alarmLights = d.alarmLights || [];
       this._panelSelections.cams = d.cams || [];
-      
+      this._sensorMappings = d.sensor_mappings || {};
       const s = d.settings || {};
       if (s.color) this._$("lightColor").value = s.color;
       if (s.bright) this._$("lightBrightness").value = s.bright;
@@ -922,25 +975,14 @@ class ZigAlarmPanel extends HTMLElement {
       if (s.exit) this._$("exitDelay").value = s.exit;
       if (s.entry) this._$("entryDelay").value = s.entry;
       if (s.time) this._$("triggerTime").value = s.time;
-
-      this._renderChips("perimeter");
-      this._renderChips("motion");
-      this._renderChips("always");
-      this._renderChips("alarmLights");
-      this._renderChips("cams");
-      this._renderSirenChip();
-      
+      this._renderChips("perimeter"); this._renderChips("motion"); this._renderChips("always"); this._renderChips("alarmLights"); this._renderChips("cams"); this._renderSirenChip();
       this._setHint("BACKUP IMPORTIERT ✅ - BITTE SYNCHRONISIEREN");
-    } catch(e) {
-      this._setHint("FEHLER: UNGÜLTIGES JSON ❌");
-    }
+    } catch(e) { this._setHint("FEHLER: UNGÜLTIGES JSON ❌"); }
   }
 
   _playSound(type) {
     const msg = { "arm": "System aktiviert.", "disarm": "System deaktiviert. Willkommen zurück.", "alarm": "Achtung! Einbruch erkannt!" }[type];
-    if (msg && window.speechSynthesis) {
-      const u = new SpeechSynthesisUtterance(msg); u.lang = "de-DE"; u.rate = 1.0; window.speechSynthesis.speak(u);
-    }
+    if (msg && window.speechSynthesis) { const u = new SpeechSynthesisUtterance(msg); u.lang = "de-DE"; u.rate = 1.0; window.speechSynthesis.speak(u); }
   }
 
   async _getHelpers() { if (this._helpers) return this._helpers; if (window.loadCardHelpers) { this._helpers = await window.loadCardHelpers(); return this._helpers; } return null; }
@@ -976,6 +1018,7 @@ class ZigAlarmPanel extends HTMLElement {
       exit_delay: Number(this._$("exitDelay")?.value || 5),
       entry_delay: Number(this._$("entryDelay")?.value || 5),
       trigger_time: Number(this._$("triggerTime")?.value || 180),
+      sensor_mappings: this._sensorMappings,
     };
     try {
       await this._hass.callService("zigalarm", "set_config", data);

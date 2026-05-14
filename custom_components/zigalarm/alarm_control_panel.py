@@ -22,9 +22,9 @@ from .const import (
     OPT_MOTION,
     OPT_PERIMETER,
     OPT_SIREN,
-    OPT_SIREN_ENTITIES,
     OPT_TRIGGER_TIME,
     OPT_FORCE_ARM,
+    OPT_SENSOR_MAPPINGS,
     DEFAULT_ENTRY_DELAY,
     DEFAULT_EXIT_DELAY,
     DEFAULT_TRIGGER_TIME,
@@ -164,6 +164,7 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
             "ready_to_arm_home": self._ready_home,
             "ready_to_arm_away": self._ready_away,
             "force_arm": bool(opts.get(OPT_FORCE_ARM, False)),
+            "sensor_mappings": opts.get(OPT_SENSOR_MAPPINGS, {}),
 
 
             "keypad_enabled": bool(opts.get(OPT_KEYPAD_ENABLED, False)),
