@@ -89,9 +89,16 @@ class ZigAlarmCard extends HTMLElement {
   }
 
   _renderSkeleton() {
+    if (!document.getElementById('za-fonts')) {
+      const link = document.createElement('link');
+      link.id = 'za-fonts';
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap';
+      document.head.appendChild(link);
+    }
+
     this._root.innerHTML = `
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
 
         :host {
           --za-primary: #0ea5e9; 
