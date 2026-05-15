@@ -383,18 +383,26 @@ class ZigAlarmPanel extends HTMLElement {
                 <div>
                    <div class="card">
                       <div class="secTitle">Zeitliche Matrix</div>
-                      <ha-text-field id="exitDelay" type="number" label="Ausgangsverzögerung (s)" suffix="s"></ha-text-field>
-                      <ha-text-field id="entryDelay" type="number" label="Eingangsverzögerung (s)" suffix="s"></ha-text-field>
-                      <ha-text-field id="triggerTime" type="number" label="Alarmdauer (s)" suffix="s"></ha-text-field>
+                      <div style="min-height:150px; display:flex; flex-direction:column; gap:12px; margin-top:15px;">
+                        <ha-text-field id="exitDelay" type="number" label="Ausgangsverzögerung (s)" suffix="s"></ha-text-field>
+                        <ha-text-field id="entryDelay" type="number" label="Eingangsverzögerung (s)" suffix="s"></ha-text-field>
+                        <ha-text-field id="triggerTime" type="number" label="Alarmdauer (s)" suffix="s"></ha-text-field>
+                      </div>
                    </div>
                    <div class="card">
                       <div class="secTitle">Ausgangs-Knoten</div>
                       <button class="pickBtn" id="sirenPick">SIRENE WÄHLEN...</button><div class="chips" id="sirenChips"></div>
                       <div class="muted" style="margin:25px 0 10px 0; font-size:0.7rem; font-family:var(--font-tech); letter-spacing:2px;">Beleuchtungs-Matrix</div>
                       ${this._pickerHtml("alarmLights", "Alarm-Lichter")}
-                      <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:15px;"><ha-textfield id="lightColor" label="HEX (#)"></ha-textfield><ha-textfield id="lightBrightness" type="number" label="Helligkeit"></ha-textfield></div>
-                      <ha-textfield id="lightEffect" label="Effekt"></ha-textfield>
-                      <div style="display:flex; gap:15px; align-items:center;"><ha-switch id="lightRestore"></ha-switch><div style="font-size:0.8rem; opacity:0.7;">Status wiederherstellen</div></div>
+                      <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:15px;">
+                        <ha-text-field id="lightColor" label="HEX (#)"></ha-text-field>
+                        <ha-text-field id="lightBrightness" type="number" label="Helligkeit"></ha-text-field>
+                      </div>
+                      <ha-text-field id="lightEffect" label="Effekt"></ha-text-field>
+                      <div style="display:flex; gap:15px; align-items:center; margin-top:15px;">
+                        <ha-switch id="lightRestore"></ha-switch>
+                        <div style="font-size:0.8rem; opacity:0.7;">Status wiederherstellen</div>
+                      </div>
                    </div>
                 </div>
              </div>
