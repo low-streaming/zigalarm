@@ -87,14 +87,6 @@ class ZigAlarmPanel extends HTMLElement {
   }
 
   _render() {
-    // Inject Fonts into Head to avoid MIME-Type module issues
-    if (!document.getElementById('za-fonts')) {
-      const link = document.createElement('link');
-      link.id = 'za-fonts';
-      link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap';
-      document.head.appendChild(link);
-    }
 
     this._root.innerHTML = `
       <style>
@@ -223,7 +215,7 @@ class ZigAlarmPanel extends HTMLElement {
         .chip span.sub2 { opacity: 0.4; font-size: 0.7rem; font-family: var(--font-mono); }
         .chip button { background: none; border: none; color: inherit; cursor: pointer; font-weight: 900; padding: 0 5px; }
 
-        ha-textfield { margin-bottom: 20px; width: 100%; --mdc-theme-primary: var(--za-primary); --mdc-text-field-fill-color: rgba(0,0,0,0.3); --mdc-text-field-ink-color: #fff; }
+        ha-textfield, ha-text-field { margin-bottom: 20px; width: 100%; --mdc-theme-primary: var(--za-primary); --mdc-text-field-fill-color: rgba(0,0,0,0.3); --mdc-text-field-ink-color: #fff; }
         ha-switch { --mdc-theme-secondary: var(--za-primary); }
 
         .save-bar { position: fixed; bottom: 40px; right: 40px; display: flex; gap: 20px; z-index: 100; }
@@ -308,7 +300,7 @@ class ZigAlarmPanel extends HTMLElement {
           .pickBtn { padding: 10px 15px; font-size: 0.7rem; border-radius: 12px; margin-bottom: 8px; min-height: auto; }
           .chip { padding: 4px 8px; font-size: 0.65rem; border-radius: 8px; }
           #alarmEntitySel { font-size: 0.75rem; padding: 5px; }
-          ha-textfield { --mdc-typography-subtitle1-font-size: 0.8rem; margin-bottom: 10px; width: 100%; height: 50px; }
+          ha-textfield, ha-text-field { --mdc-typography-subtitle1-font-size: 0.8rem; margin-bottom: 10px; width: 100%; height: 50px; }
         }
       </style>
 
@@ -391,9 +383,9 @@ class ZigAlarmPanel extends HTMLElement {
                 <div>
                    <div class="card">
                       <div class="secTitle">Zeitliche Matrix</div>
-                      <ha-textfield id="exitDelay" type="number" label="Ausgangsverzögerung (s)"></ha-textfield>
-                      <ha-textfield id="entryDelay" type="number" label="Eingangsverzögerung (s)"></ha-textfield>
-                      <ha-textfield id="triggerTime" type="number" label="Alarmdauer (s)"></ha-textfield>
+                      <ha-text-field id="exitDelay" type="number" label="Ausgangsverzögerung (s)" suffix="s"></ha-text-field>
+                      <ha-text-field id="entryDelay" type="number" label="Eingangsverzögerung (s)" suffix="s"></ha-text-field>
+                      <ha-text-field id="triggerTime" type="number" label="Alarmdauer (s)" suffix="s"></ha-text-field>
                    </div>
                    <div class="card">
                       <div class="secTitle">Ausgangs-Knoten</div>

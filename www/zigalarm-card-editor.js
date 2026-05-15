@@ -23,7 +23,6 @@ class ZigAlarmCardEditor extends HTMLElement {
 
     this._root.innerHTML = `
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Orbitron:wght@900&family=JetBrains+Mono:wght@400;700&display=swap');
         
         :host {
           display: block;
