@@ -231,17 +231,18 @@ class ZigAlarmPanel(AlarmControlPanelEntity, RestoreEntity):
         opts = self.entry.options or {}
         perimeter = _uniq_clean(opts.get(OPT_PERIMETER, []))
         motion = _uniq_clean(opts.get(OPT_MOTION, []))
+        always = _uniq_clean(opts.get(OPT_ALWAYS, []))
 
         def is_on(eid: str) -> bool:
             st = self.hass.states.get(eid)
             return bool(st and st.state == "on")
 
-        open_now = [eid for eid in set(perimeter + motion) if is_on(eid)]
+        open_now = [eid for eid in set(perimeter + motion + always) if is_on(eid)]
         self._open_sensors = sorted(open_now)
 
         open_perimeter = [eid for eid in perimeter if is_on(eid)]
         self._ready_home = len(open_perimeter) == 0
-        self._ready_away = len(self._open_sensors) == 0
+        self._ready_away = len(open_now) == 0
 
     def _is_relevant_trigger(self, entity_id: str) -> bool:
         opts = self.entry.options or {}

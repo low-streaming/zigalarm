@@ -277,18 +277,30 @@ class ZigAlarmPanel extends HTMLElement {
         .log-msg { color: #fff; opacity: 0.9; }
 
         @media (max-width: 1000px) {
-          .navbar { padding: 0 20px; height: auto; flex-direction: column; padding-bottom: 15px; }
-          .brand { margin: 15px 0; }
-          .nav-tabs { width: 100%; justify-content: space-around; gap: 5px; padding: 5px; }
-          .nav-item { padding: 10px 5px; font-size: 0.65rem; flex: 1; text-align: center; }
-          .main-content { padding: 20px; padding-bottom: 120px; }
-          .hero-title h1 { font-size: 1.8rem; }
-          .dash-hero { flex-direction: column; align-items: flex-start; gap: 20px; }
-          .grid2 { grid-template-columns: 1fr; }
-          .action-grid { grid-template-columns: repeat(2, 1fr); }
-          .save-bar { left: 0; right: 0; bottom: 0; padding: 20px; background: var(--za-bg); border-top: 1px solid var(--za-glass-border); width: 100%; box-sizing: border-box; }
-          .btn-prime { width: 100%; text-align: center; }
-          .modal { width: 95%; margin: 10px; }
+          .navbar { padding: 0 15px; height: auto; flex-direction: column; padding-bottom: 12px; }
+          .brand { margin: 12px 0; font-size: 1.1rem; }
+          .brand svg { width: 24px; height: 24px; }
+          .nav-tabs { width: 100%; justify-content: space-around; gap: 5px; padding: 5px; border-radius: 15px; }
+          .nav-item { padding: 10px 5px; font-size: 0.65rem; }
+          .main-content { padding: 15px 20px; padding-bottom: 110px; overflow-x: hidden; }
+          .hero-title h1 { font-size: 1.6rem; margin-bottom: 5px; }
+          .hero-title .muted { font-size: 0.75rem; letter-spacing: 1px; }
+          .pill-hero { padding: 10px 25px; font-size: 0.85rem; border-radius: 25px; }
+          .dash-hero { margin-bottom: 25px; gap: 15px; align-items: center; text-align: center; }
+          .grid2 { display: block; margin-top: 20px; }
+          .card { padding: 20px 15px; border-radius: 20px; margin-bottom: 15px; }
+          .secTitle { margin-bottom: 25px; font-size: 0.8rem; letter-spacing: 2px; }
+          .action-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+          .btn-action { padding: 25px 15px; border-radius: 20px; }
+          .btn-action ha-icon { --mdc-icon-size: 28px; }
+          .save-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 15px; background: rgba(8, 8, 10, 0.98); backdrop-filter: blur(15px); border-top: 1px solid var(--za-glass-border); z-index: 1000; }
+          .btn-prime { width: 100%; padding: 15px; font-size: 0.9rem; letter-spacing: 2px; border-radius: 15px; }
+          .modal { width: 98%; margin: 2px; border-radius: 20px; }
+          .modalBody { padding: 20px; }
+          .pickBtn { padding: 10px 15px; font-size: 0.7rem; border-radius: 12px; margin-bottom: 8px; min-height: auto; }
+          .chip { padding: 4px 8px; font-size: 0.65rem; border-radius: 8px; }
+          #alarmEntitySel { font-size: 0.75rem; padding: 5px; }
+          ha-textfield { --mdc-typography-subtitle1-font-size: 0.8rem; margin-bottom: 10px; width: 100%; height: 50px; }
         }
       </style>
 
