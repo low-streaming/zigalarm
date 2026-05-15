@@ -277,13 +277,18 @@ class ZigAlarmPanel extends HTMLElement {
         .log-msg { color: #fff; opacity: 0.9; }
 
         @media (max-width: 1000px) {
-          .navbar { padding: 0 30px; height: 80px; }
-          .main-content { padding: 30px; }
-          .hero-title h1 { font-size: 2rem; }
+          .navbar { padding: 0 20px; height: auto; flex-direction: column; padding-bottom: 15px; }
+          .brand { margin: 15px 0; }
+          .nav-tabs { width: 100%; justify-content: space-around; gap: 5px; padding: 5px; }
+          .nav-item { padding: 10px 5px; font-size: 0.65rem; flex: 1; text-align: center; }
+          .main-content { padding: 20px; padding-bottom: 120px; }
+          .hero-title h1 { font-size: 1.8rem; }
+          .dash-hero { flex-direction: column; align-items: flex-start; gap: 20px; }
           .grid2 { grid-template-columns: 1fr; }
           .action-grid { grid-template-columns: repeat(2, 1fr); }
-          .save-bar { left: 30px; right: 30px; bottom: 20px; }
+          .save-bar { left: 0; right: 0; bottom: 0; padding: 20px; background: var(--za-bg); border-top: 1px solid var(--za-glass-border); width: 100%; box-sizing: border-box; }
           .btn-prime { width: 100%; text-align: center; }
+          .modal { width: 95%; margin: 10px; }
         }
       </style>
 
@@ -355,9 +360,9 @@ class ZigAlarmPanel extends HTMLElement {
              <div class="grid2">
                 <div class="card">
                   <div class="secTitle">Sensor-Array</div>
-                  ${this._pickerHtml("perimeter", "Perimeter-Sensoren")}
-                  ${this._pickerHtml("motion", "Volumetrische Sensoren")}
-                  ${this._pickerHtml("always", "Kritische Sensoren")}
+                  ${this._pickerHtml("perimeter", "Außenhaut (Fenster/Türen)")}
+                  ${this._pickerHtml("motion", "Innenraum (Bewegung)")}
+                  ${this._pickerHtml("always", "Kritisch (Sabotage/Feuer/Wasser)")}
                   <div style="margin-top:30px; border-top:1px solid var(--za-glass-border); padding-top:30px; display:flex; align-items:center; justify-content:space-between;">
                      <div><div style="font-weight:900;">Scharfschalten erzwingen</div><div style="font-size:0.75rem; opacity:0.5;">Aktive Sensoren ignorieren</div></div>
                      <ha-switch id="forceArm"></ha-switch>
@@ -487,8 +492,8 @@ class ZigAlarmPanel extends HTMLElement {
     this._$("btnDisarm").onclick = () => { this._beep(400, 0.1); this._disarm(); };
     this._$("btnTrigger").onclick = () => { this._beep(100, 0.5, 'square'); this._trigger(); };
 
-    this._hookPicker("perimeter", ["binary_sensor", "sensor", "event"], true, "PERIMETER");
-    this._hookPicker("motion", ["binary_sensor", "sensor", "event"], true, "VOLUMETRISCH");
+    this._hookPicker("perimeter", ["binary_sensor", "sensor", "event"], true, "AUSSENHAUT");
+    this._hookPicker("motion", ["binary_sensor", "sensor", "event"], true, "INNENRAUM");
     this._hookPicker("always", ["binary_sensor", "sensor", "event"], true, "KRITISCH");
     this._hookPicker("alarmLights", ["light"], true, "LICHTER");
     this._hookPicker("cams", ["camera"], true, "KAMERAS");
@@ -651,8 +656,18 @@ class ZigAlarmPanel extends HTMLElement {
       const logs = await this._hass.callApi("GET", `logbook/${new Date(Date.now() - 86400000).toISOString()}?entity=${eid}`);
       if (!logs || !logs.length) { el.innerHTML = '<div class="muted">KEINE AKTUELLEN EREIGNISSE</div>'; return; }
       el.innerHTML = logs.reverse().slice(0, 15).map(l => {
-        const ts = new Date(l.when).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        return `<div class="log-entry"><span class="log-ts">[${ts}]</span><span class="log-msg">${l.message || l.name}</span></div>`;
+        const d = new Date(l.when);
+        const ts = `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}. ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        let msg = l.message || l.name || "Ereignis";
+        if (l.state) {
+           const stateDe = stateToDE(l.state);
+           msg = `Status geändert auf ${stateDe}`;
+        }
+        const isAlarm = l.state === 'triggered' || msg.includes('ALARM');
+        return `<div class="log-entry" style="${isAlarm ? 'color:var(--za-danger); border-left:3px solid var(--za-danger); padding-left:10px; background:rgba(255,0,60,0.05);' : ''}">
+          <span class="log-ts" style="${isAlarm ? 'color:var(--za-danger); opacity:1;' : ''}">[${ts}]</span>
+          <span class="log-msg" style="${isAlarm ? 'font-weight:900; text-transform:uppercase;' : ''}">${msg}</span>
+        </div>`;
       }).join("");
     } catch (e) { el.innerHTML = '<div class="muted">LOG-FEHLER</div>'; }
   }
@@ -792,6 +807,13 @@ class ZigAlarmPanel extends HTMLElement {
   async _getHelpers() { if (this._helpers) return this._helpers; if (window.loadCardHelpers) { this._helpers = await window.loadCardHelpers(); return this._helpers; } return null; }
   async _updateCamPreview(cams) {
     const card = this._$("camPreviewCard"); if (!card || !cams.length) return;
+    const camsJson = JSON.stringify(cams);
+    if (this._lastCams === camsJson) {
+       const el = card.querySelector("vertical-stack");
+       if (el) el.hass = this._hass;
+       return;
+    }
+    this._lastCams = camsJson;
     const helpers = await this._getHelpers(); if (!helpers) return;
     card.innerHTML = "";
     const el = helpers.createCardElement({ type: "vertical-stack", cards: cams.map(eid => ({ type: "picture-entity", entity: eid, show_name: true, show_state: false })) });
