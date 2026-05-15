@@ -339,6 +339,10 @@ class ZigAlarmPanel extends HTMLElement {
               </div>
               <div class="card" id="camPreviewCard" style="min-height:300px; display:flex; align-items:center; justify-content:center;"><div class="muted">LADE VIDEO-KNOTEN...</div></div>
             </div>
+            <div class="card">
+               <div class="secTitle">Taktisches Logbuch</div>
+               <div class="tactical-log" id="tacticalLog"><div class="muted">INITIALISIERE LOG-DATEN...</div></div>
+            </div>
           </div>
 
           <div id="tab-health" class="tab-view">
