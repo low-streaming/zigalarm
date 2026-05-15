@@ -22,6 +22,7 @@ from .const import (
     OPT_MOTION,
     OPT_PERIMETER,
     OPT_SIREN,
+    OPT_SIREN_ENTITIES,
     OPT_TRIGGER_TIME,
     OPT_FORCE_ARM,
     OPT_SENSOR_MAPPINGS,

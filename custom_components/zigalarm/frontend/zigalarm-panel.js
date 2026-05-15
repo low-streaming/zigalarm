@@ -576,7 +576,9 @@ class ZigAlarmPanel extends HTMLElement {
        if (!this._panelSelections[k] || this._panelSelections[k].length === 0) this._panelSelections[k] = uniq(a[attr] || []);
        this._renderChips(k);
     });
-    if (!this._panelSelections.siren) this._panelSelections.siren = a.siren_entity ? [a.siren_entity] : [];
+    if (!this._panelSelections.siren || this._panelSelections.siren.length === 0) {
+       this._panelSelections.siren = uniq(a.siren_entities || (a.siren_entity ? [a.siren_entity] : []));
+    }
     this._renderSirenChip();
 
     const setVal = (id, v) => { const el = this._$(id); if (el && el.value != v) el.value = v; };
@@ -679,21 +681,22 @@ class ZigAlarmPanel extends HTMLElement {
   async _save() {
     const data = {
       alarm_entity: this._getSelectedAlarmEntity(),
-      perimeter_sensors: this._panelSelections.perimeter,
-      motion_sensors: this._panelSelections.motion,
-      always_sensors: this._panelSelections.always,
-      siren_entity: this._panelSelections.siren?.[0],
-      alarm_lights: this._panelSelections.alarmLights,
+      perimeter_sensors: this._panelSelections.perimeter || [],
+      motion_sensors: this._panelSelections.motion || [],
+      always_sensors: this._panelSelections.always || [],
+      siren_entity: this._panelSelections.siren?.[0] || "",
+      siren_entities: this._panelSelections.siren || [],
+      alarm_lights: this._panelSelections.alarmLights || [],
       alarm_light_color: this._$("lightColor").value,
       alarm_light_brightness: this._$("lightBrightness").value,
       alarm_light_restore: this._$("lightRestore").checked,
-      camera_entities: this._panelSelections.cams,
+      camera_entities: this._panelSelections.cams || [],
       camera_show_only_triggered: this._$("camOnlyTrig").checked,
       force_arm: this._$("forceArm").checked,
       exit_delay: this._$("exitDelay").value,
       entry_delay: this._$("entryDelay").value,
       trigger_time: this._$("triggerTime").value,
-      sensor_mappings: this._sensorMappings,
+      sensor_mappings: this._sensorMappings || {},
     };
     if (this._loading) return;
     this._loading = true;
