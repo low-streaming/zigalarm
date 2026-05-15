@@ -23,7 +23,10 @@ from .const import (
     OPT_LIGHT_RESTORE,
     OPT_CAMERAS,
     OPT_CAMERA_SHOW_ONLY_TRIGGERED,
+    OPT_EXIT_DELAY,
+    OPT_ENTRY_DELAY,
     OPT_TRIGGER_TIME,
+    OPT_FORCE_ARM,
     OPT_SENSOR_MAPPINGS,
     DEFAULT_EXIT_DELAY,
     DEFAULT_ENTRY_DELAY,
@@ -128,6 +131,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         options[OPT_EXIT_DELAY] = int(data.get("exit_delay") or DEFAULT_EXIT_DELAY)
         options[OPT_ENTRY_DELAY] = int(data.get("entry_delay") or DEFAULT_ENTRY_DELAY)
         options[OPT_TRIGGER_TIME] = int(data.get("trigger_time") or DEFAULT_TRIGGER_TIME)
+        options[OPT_FORCE_ARM] = bool(data.get("force_arm", False))
         options[OPT_SENSOR_MAPPINGS] = data.get("sensor_mappings") or {}
 
         hass.config_entries.async_update_entry(entry, options=options)
