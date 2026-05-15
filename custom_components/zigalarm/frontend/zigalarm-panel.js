@@ -753,8 +753,11 @@ class ZigAlarmPanel extends HTMLElement {
   async _trigger() { const eid = this._getSelectedAlarmEntity(); if (eid) await this._hass.callService("alarm_control_panel", "alarm_trigger", { entity_id: eid }); }
 
   async _save() {
+    const eid = this._getSelectedAlarmEntity();
+    const st = this._hass.states[eid];
     const data = {
-      alarm_entity: this._getSelectedAlarmEntity(),
+      config_entry_id: st?.attributes?.config_entry_id || "",
+      alarm_entity: eid,
       perimeter_sensors: this._panelSelections.perimeter || [],
       motion_sensors: this._panelSelections.motion || [],
       always_sensors: this._panelSelections.always || [],
