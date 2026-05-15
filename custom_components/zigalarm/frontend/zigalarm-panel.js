@@ -39,6 +39,24 @@ class ZigAlarmPanel extends HTMLElement {
     this._currentPick = null;
     this._mapTarget = null;
     this._hass = null;
+    this._dirty = false;
+    this._loading = false;
+  }
+
+  _beep(freq = 800, dur = 0.1, type = 'sine') {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + dur);
+    } catch (e) {}
   }
 
   set hass(hass) {
@@ -206,6 +224,9 @@ class ZigAlarmPanel extends HTMLElement {
           font-family: var(--font-tech); font-weight: 900; letter-spacing: 3px; border: none; cursor: pointer; transition: 0.3s; text-transform: uppercase;
         }
         .btn-prime:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(14, 165, 233, 0.4); }
+        .btn-prime.dirty { animation: pulseSave 2s infinite; border: 1px solid #fff; }
+        .btn-prime.loading { opacity: 0.5; cursor: wait; filter: grayscale(1); }
+        @keyframes pulseSave { 0% { box-shadow: 0 0 0px var(--za-primary); } 50% { box-shadow: 0 0 30px var(--za-primary); } 100% { box-shadow: 0 0 0px var(--za-primary); } }
 
         .node-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .node-card {
@@ -248,6 +269,22 @@ class ZigAlarmPanel extends HTMLElement {
         @keyframes scanMove { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
 
         .footer { text-align: center; padding: 60px; font-family: var(--font-tech); letter-spacing: 5px; opacity: 0.2; font-size: 0.8rem; }
+
+        .tactical-log { margin-top: 35px; background: rgba(0,0,0,0.4); border-radius: 20px; padding: 25px; border: 1px solid var(--za-glass-border); max-height: 300px; overflow-y: auto; }
+        .log-entry { font-family: var(--font-mono); font-size: 0.75rem; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 15px; }
+        .log-entry:last-child { border: none; }
+        .log-ts { color: var(--za-primary); opacity: 0.6; min-width: 80px; }
+        .log-msg { color: #fff; opacity: 0.9; }
+
+        @media (max-width: 1000px) {
+          .navbar { padding: 0 30px; height: 80px; }
+          .main-content { padding: 30px; }
+          .hero-title h1 { font-size: 2rem; }
+          .grid2 { grid-template-columns: 1fr; }
+          .action-grid { grid-template-columns: repeat(2, 1fr); }
+          .save-bar { left: 30px; right: 30px; bottom: 20px; }
+          .btn-prime { width: 100%; text-align: center; }
+        }
       </style>
 
       <div class="app-container">
@@ -391,11 +428,13 @@ class ZigAlarmPanel extends HTMLElement {
     const tabs = ["dashboard", "health", "settings", "info"];
     tabs.forEach(t => {
        this._$(`nav-${t}`).onclick = () => {
+          this._beep(1000, 0.02);
           tabs.forEach(x => { this._$(`nav-${x}`).classList.remove("active"); this._$(`tab-${x}`).classList.remove("active"); });
           this._$(`nav-${t}`).classList.add("active");
           this._$(`tab-${t}`).classList.add("active");
           this._activeTab = t;
           if (t === 'health') this._updateHealthGrid();
+          if (t === 'dashboard') this._updateTacticalLog();
        };
     });
 
@@ -404,10 +443,10 @@ class ZigAlarmPanel extends HTMLElement {
 
     this._$("alarmEntitySel").onchange = () => { this._panelSelections = {}; this._update(); };
     this._$("save").onclick = () => this._save();
-    this._$("btnHome").onclick = () => this._arm("home");
-    this._$("btnAway").onclick = () => this._arm("away");
-    this._$("btnDisarm").onclick = () => this._disarm();
-    this._$("btnTrigger").onclick = () => this._trigger();
+    this._$("btnHome").onclick = () => { this._beep(600, 0.1); this._arm("home"); };
+    this._$("btnAway").onclick = () => { this._beep(600, 0.1); this._arm("away"); };
+    this._$("btnDisarm").onclick = () => { this._beep(400, 0.1); this._disarm(); };
+    this._$("btnTrigger").onclick = () => { this._beep(100, 0.5, 'square'); this._trigger(); };
 
     this._hookPicker("perimeter", ["binary_sensor", "sensor", "event"], true, "PERIMETER");
     this._hookPicker("motion", ["binary_sensor", "sensor", "event"], true, "VOLUMETRISCH");
@@ -420,10 +459,12 @@ class ZigAlarmPanel extends HTMLElement {
     this._$("pickerDone").onclick = () => this._closePicker();
     this._$("pickerSearch").oninput = () => this._renderPickerList();
     this._$("pickerClear").onclick = () => {
+       this._beep(300, 0.1);
        const k = this._currentPick?.key; if (!k) return;
        this._panelSelections[k] = [];
        if (k === "siren") this._renderSirenChip(); else this._renderChips(k);
        this._renderPickerList();
+       this._setDirty();
     };
 
     this._$("exportBtn").onclick = () => this._exportConfig();
@@ -438,8 +479,17 @@ class ZigAlarmPanel extends HTMLElement {
     });
     this._$("mapLqiBtn").onclick = () => this._openPicker({ 
        key: "map_lqi", domains: ["sensor"], multi: false, title: "SIGNAL KNOTEN",
-       callback: (eid) => { if (!this._sensorMappings[this._mapTarget]) this._sensorMappings[this._mapTarget] = {}; this._sensorMappings[this._mapTarget].lqi = eid; this._renderMapModal(); }
+       callback: (eid) => { if (!this._sensorMappings[this._mapTarget]) this._sensorMappings[this._mapTarget] = {}; this._sensorMappings[this._mapTarget].lqi = eid; this._renderMapModal(); this._setDirty(); }
     });
+
+    setTimeout(() => {
+      ["exitDelay", "entryDelay", "triggerTime", "lightColor", "lightBrightness", "lightEffect"].forEach(id => {
+        const el = this._$(id); if (el) el.onchange = () => this._setDirty();
+      });
+      ["forceArm", "lightRestore", "camOnlyTrig"].forEach(id => {
+        const el = this._$(id); if (el) el.onchange = () => this._setDirty();
+      });
+    }, 1000);
   }
 
   _pickerHtml(key, title) { return `<div style="margin-bottom:25px;"><div style="font-size:0.7rem; font-family:var(--font-tech); letter-spacing:2px; opacity:0.4; margin-bottom:12px;">${title}</div><button class="pickBtn" id="${key}Pick">KNOTEN ZUWEISEN...</button><div class="chips" id="${key}Chips"></div></div>`; }
@@ -483,11 +533,11 @@ class ZigAlarmPanel extends HTMLElement {
              const cur = this._panelSelections[key] || [];
              if (cur.includes(eid)) this._panelSelections[key] = cur.filter(x => x !== eid);
              else this._panelSelections[key] = [...cur, eid];
-             this._renderChips(key); this._renderPickerList();
+             this._renderChips(key); this._renderPickerList(); this._setDirty();
           } else {
              this._panelSelections[key] = [eid];
              if (key === "siren") this._renderSirenChip();
-             this._closePicker();
+             this._closePicker(); this._setDirty();
           }
        };
     });
@@ -498,7 +548,7 @@ class ZigAlarmPanel extends HTMLElement {
     const items = this._panelSelections[key] || [];
     host.innerHTML = items.map(eid => `<div class="chip"><span>${this._friendlyName(eid)}</span><span class="sub2">${eid}</span><button data-eid="${eid}">✕</button></div>`).join("");
     host.querySelectorAll("button").forEach(btn => {
-       btn.onclick = (e) => { e.stopPropagation(); this._panelSelections[key] = (this._panelSelections[key] || []).filter(x => x !== btn.getAttribute("data-eid")); this._renderChips(key); };
+       btn.onclick = (e) => { e.stopPropagation(); this._beep(400, 0.05); this._panelSelections[key] = (this._panelSelections[key] || []).filter(x => x !== btn.getAttribute("data-eid")); this._renderChips(key); this._setDirty(); };
     });
   }
 
@@ -549,6 +599,21 @@ class ZigAlarmPanel extends HTMLElement {
 
     if (this._activeTab === 'health') this._updateHealthGrid();
     this._updateCamPreview(a.camera_entities || []);
+    if (this._activeTab === 'dashboard' && !this._lastLogFetch) this._updateTacticalLog();
+  }
+
+  async _updateTacticalLog() {
+    const el = this._$("tacticalLog"); if (!el || !this._hass) return;
+    this._lastLogFetch = Date.now();
+    try {
+      const eid = this._getSelectedAlarmEntity();
+      const logs = await this._hass.callApi("GET", `logbook/${new Date(Date.now() - 86400000).toISOString()}?entity=${eid}`);
+      if (!logs || !logs.length) { el.innerHTML = '<div class="muted">KEINE AKTUELLEN EREIGNISSE</div>'; return; }
+      el.innerHTML = logs.reverse().slice(0, 15).map(l => {
+        const ts = new Date(l.when).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `<div class="log-entry"><span class="log-ts">[${ts}]</span><span class="log-msg">${l.message || l.name}</span></div>`;
+      }).join("");
+    } catch (e) { el.innerHTML = '<div class="muted">LOG-FEHLER</div>'; }
   }
 
   _updateCountdown(st) {
@@ -596,7 +661,18 @@ class ZigAlarmPanel extends HTMLElement {
      this._$("mapLqiBtn").textContent = m.lqi ? this._friendlyName(m.lqi) : "KLICKEN ZUM WÄHLEN...";
   }
 
-  async _arm(mode) { const eid = this._getSelectedAlarmEntity(); if (eid) await this._hass.callService("alarm_control_panel", mode === "home" ? "alarm_arm_home" : "alarm_arm_away", { entity_id: eid }); }
+  async _arm(mode) { 
+    const eid = this._getSelectedAlarmEntity(); if (!eid) return;
+    const st = this._hass.states[eid];
+    const force = st?.attributes?.force_arm;
+    const open = st?.attributes?.open_sensors || [];
+    if (open.length && !force) {
+      this._beep(200, 0.5, 'sawtooth');
+      alert(`WARNUNG: PERIMETER NICHT GESICHERT!\n\nFolgende Sensoren sind offen:\n${open.join("\n")}\n\nScharfschalten abgebrochen.`);
+      return;
+    }
+    await this._hass.callService("alarm_control_panel", mode === "home" ? "alarm_arm_home" : "alarm_arm_away", { entity_id: eid }); 
+  }
   async _disarm() { const eid = this._getSelectedAlarmEntity(); if (eid) await this._hass.callService("alarm_control_panel", "alarm_disarm", { entity_id: eid }); }
   async _trigger() { const eid = this._getSelectedAlarmEntity(); if (eid) await this._hass.callService("alarm_control_panel", "alarm_trigger", { entity_id: eid }); }
 
@@ -619,12 +695,44 @@ class ZigAlarmPanel extends HTMLElement {
       trigger_time: this._$("triggerTime").value,
       sensor_mappings: this._sensorMappings,
     };
+    if (this._loading) return;
+    this._loading = true;
+    this._updateSyncBtn();
+    this._beep(1200, 0.05, 'square');
     try {
       await this._hass.callService("zigalarm", "set_config", data);
       this._setHint("KONFIGURATION SYNCHRONISIERT ✅");
+      this._dirty = false;
+      this._beep(1500, 0.2);
     } catch (err) {
       console.error("Save failed:", err);
       this._setHint("FEHLER BEIM SPEICHERN ❌");
+      this._beep(300, 0.3, 'sawtooth');
+    } finally {
+      this._loading = false;
+      this._updateSyncBtn();
+    }
+  }
+
+  _setDirty() { 
+    if (!this._dirty) {
+      this._dirty = true; 
+      this._updateSyncBtn(); 
+    }
+  }
+
+  _updateSyncBtn() {
+    const btn = this._$("save");
+    if (!btn) return;
+    if (this._loading) {
+      btn.textContent = "Syncing...";
+      btn.classList.add("loading");
+      btn.classList.remove("dirty");
+    } else {
+      btn.textContent = "Synchronisieren";
+      btn.classList.remove("loading");
+      if (this._dirty) btn.classList.add("dirty");
+      else btn.classList.remove("dirty");
     }
   }
 

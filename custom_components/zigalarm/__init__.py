@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import json
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -61,6 +62,16 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         await hass.http.async_register_static_paths(
             [StaticPathConfig(STATIC_URL, str(STATIC_DIR), cache_headers=False)]
         )
+    
+    # ✅ Read version from manifest for cache busting
+    version = "1.0.0"
+    manifest_path = Path(__file__).parent / "manifest.json"
+    if manifest_path.exists():
+        try:
+            with open(manifest_path) as f:
+                version = json.load(f).get("version", "1.0.0")
+        except Exception:
+            pass
 
     # ✅ Panel register MUST be awaited
     #    (API unterscheidet sich je nach HA-Version)
@@ -69,7 +80,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             hass,
             frontend_url_path=PANEL_URL_PATH,
             webcomponent_name="zigalarm-panel",
-            module_url=f"{STATIC_URL}/zigalarm-panel.js",
+            module_url=f"{STATIC_URL}/zigalarm-panel.js?v={version}",
             sidebar_title="ZigAlarm Panel",
             sidebar_icon="mdi:shield-home",
             require_admin=False,
@@ -79,7 +90,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             hass,
             url_path=PANEL_URL_PATH,
             webcomponent_name="zigalarm-panel",
-            module_url=f"{STATIC_URL}/zigalarm-panel.js",
+            module_url=f"{STATIC_URL}/zigalarm-panel.js?v={version}",
             sidebar_title="ZigAlarm Panel",
             sidebar_icon="mdi:shield-home",
             require_admin=False,
