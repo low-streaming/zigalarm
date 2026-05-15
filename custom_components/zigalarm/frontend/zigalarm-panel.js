@@ -414,7 +414,7 @@ class ZigAlarmPanel extends HTMLElement {
             <div class="grid2">
               <div class="card" style="text-align:center; padding:60px 40px;">
                 <h1 class="brand" style="justify-content:center; font-size:3rem; margin-bottom:10px;">ZIG<span>ALARM</span></h1>
-                <div style="font-family:var(--font-tech); letter-spacing:8px; font-weight:900; color:var(--za-primary); font-size:0.9rem;">INFINITY OS // V2.6</div>
+                <div style="font-family:var(--font-tech); letter-spacing:8px; font-weight:900; color:var(--za-primary); font-size:0.9rem;">INFINITY OS // V1.0.0</div>
                 
                 <div style="margin-top:40px; padding:30px; background:rgba(0,0,0,0.3); border-radius:25px; border:1px solid var(--za-glass-border); text-align:left;">
                   <div class="secTitle" style="margin-bottom:20px; font-size:0.8rem;">Kern-Spezifikationen</div>
