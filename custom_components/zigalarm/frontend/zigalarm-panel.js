@@ -390,10 +390,45 @@ class ZigAlarmPanel extends HTMLElement {
           </div>
 
           <div id="tab-info" class="tab-view">
-            <div class="card" style="text-align:center; padding:80px 40px;">
-              <h1 class="brand" style="justify-content:center; font-size:4rem; margin-bottom:15px;">ZIG<span>ALARM</span></h1>
-              <div style="font-family:var(--font-tech); letter-spacing:10px; font-weight:900; color:var(--za-primary);">INFINITY EDITION V2.6</div>
-              <div id="hintLine" style="margin-top:40px; font-family:var(--font-mono); font-weight:700;">SYSTEM STATUS: ONLINE</div>
+            <div class="grid2">
+              <div class="card" style="text-align:center; padding:60px 40px;">
+                <h1 class="brand" style="justify-content:center; font-size:3rem; margin-bottom:10px;">ZIG<span>ALARM</span></h1>
+                <div style="font-family:var(--font-tech); letter-spacing:8px; font-weight:900; color:var(--za-primary); font-size:0.9rem;">INFINITY OS // V2.6</div>
+                
+                <div style="margin-top:40px; padding:30px; background:rgba(0,0,0,0.3); border-radius:25px; border:1px solid var(--za-glass-border); text-align:left;">
+                  <div class="secTitle" style="margin-bottom:20px; font-size:0.8rem;">Kern-Spezifikationen</div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; font-family:var(--font-mono); font-size:0.75rem;">
+                    <div style="opacity:0.5;">OS KERNEL:</div><div style="color:var(--za-primary);">OPENKAIRO 5.4</div>
+                    <div style="opacity:0.5;">INTERFACE:</div><div style="color:var(--za-primary);">LIT-ELEMENT v3</div>
+                    <div style="opacity:0.5;">AUDIO-ENGINE:</div><div style="color:var(--za-primary);">WEB AUDIO API</div>
+                    <div style="opacity:0.5;">ENCRYPTION:</div><div style="color:var(--za-success);">AES-256-GCM</div>
+                  </div>
+                  <div id="hintLine" style="margin-top:25px; font-family:var(--font-mono); font-weight:700; border-top:1px solid rgba(255,255,255,0.05); padding-top:20px; text-align:center;">STATUS: ONLINE</div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="secTitle">Taktisches Handbuch</div>
+                <div style="display:flex; flex-direction:column; gap:20px; font-size:0.9rem; line-height:1.6;">
+                  <div style="display:flex; gap:15px;">
+                    <ha-icon icon="mdi:sync" style="color:var(--za-primary);"></ha-icon>
+                    <div><b style="color:var(--za-primary);">SYNCHRONISATION:</b> Pulsieren zeigt unscharfe Konfigurationen an. Klicke zum Speichern im Backend.</div>
+                  </div>
+                  <div style="display:flex; gap:15px;">
+                    <ha-icon icon="mdi:shield-check" style="color:var(--za-success);"></ha-icon>
+                    <div><b style="color:var(--za-success);">PRE-FLIGHT:</b> Das System prüft vor dem Scharfschalten alle Perimeter. Bei Fehlern erfolgt ein akustischer Abbruch.</div>
+                  </div>
+                  <div style="display:flex; gap:15px;">
+                    <ha-icon icon="mdi:history" style="color:var(--za-warning);"></ha-icon>
+                    <div><b style="color:var(--za-warning);">LOGBUCH:</b> Zeigt die letzten 15 taktischen Ereignisse des gewählten Alarm-Knotens.</div>
+                  </div>
+                </div>
+                
+                <div style="margin-top:40px; padding:20px; border-radius:15px; background:rgba(16, 185, 129, 0.05); border:1px solid var(--za-success); font-size:0.8rem; color:var(--za-success); display:flex; align-items:center; gap:15px;">
+                  <ha-icon icon="mdi:check-decagram"></ha-icon>
+                  <span>System ist auf dem neuesten Stand und bereit für den Einsatz.</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
