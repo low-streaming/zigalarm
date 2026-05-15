@@ -215,7 +215,14 @@ class ZigAlarmPanel extends HTMLElement {
         .chip span.sub2 { opacity: 0.4; font-size: 0.7rem; font-family: var(--font-mono); }
         .chip button { background: none; border: none; color: inherit; cursor: pointer; font-weight: 900; padding: 0 5px; }
 
-        ha-textfield, ha-text-field { margin-bottom: 20px; width: 100%; --mdc-theme-primary: var(--za-primary); --mdc-text-field-fill-color: rgba(0,0,0,0.3); --mdc-text-field-ink-color: #fff; }
+        .cyber-input-group { margin-bottom: 20px; width: 100%; position: relative; }
+        .cyber-input-group label { display: block; font-size: 0.65rem; font-family: var(--font-tech); color: var(--za-primary); letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase; opacity: 0.8; }
+        .cyber-input {
+          width: 100%; background: rgba(0,0,0,0.4); border: 1.5px solid var(--za-glass-border); border-radius: 12px;
+          padding: 15px 20px; color: #fff; font-family: var(--font-mono); font-size: 0.9rem; outline: none; transition: 0.3s;
+          box-sizing: border-box;
+        }
+        .cyber-input:focus { border-color: var(--za-primary); background: rgba(14, 165, 233, 0.05); box-shadow: 0 0 15px rgba(14, 165, 233, 0.2); }
         ha-switch { --mdc-theme-secondary: var(--za-primary); }
 
         .save-bar { position: fixed; bottom: 40px; right: 40px; display: flex; gap: 20px; z-index: 100; }
@@ -383,11 +390,9 @@ class ZigAlarmPanel extends HTMLElement {
                 <div>
                    <div class="card">
                       <div class="secTitle">Zeitliche Matrix</div>
-                      <div style="min-height:150px; display:flex; flex-direction:column; gap:12px; margin-top:15px;">
-                        <ha-text-field id="exitDelay" type="number" label="Ausgangsverzögerung (s)" suffix="s"></ha-text-field>
-                        <ha-text-field id="entryDelay" type="number" label="Eingangsverzögerung (s)" suffix="s"></ha-text-field>
-                        <ha-text-field id="triggerTime" type="number" label="Alarmdauer (s)" suffix="s"></ha-text-field>
-                      </div>
+                      <div class="cyber-input-group"><label>Ausgangsverzögerung (s)</label><input class="cyber-input" id="exitDelay" type="number" placeholder="60"></div>
+                      <div class="cyber-input-group"><label>Eingangsverzögerung (s)</label><input class="cyber-input" id="entryDelay" type="number" placeholder="60"></div>
+                      <div class="cyber-input-group"><label>Alarmdauer (s)</label><input class="cyber-input" id="triggerTime" type="number" placeholder="180"></div>
                    </div>
                    <div class="card">
                       <div class="secTitle">Ausgangs-Knoten</div>
@@ -395,10 +400,10 @@ class ZigAlarmPanel extends HTMLElement {
                       <div class="muted" style="margin:25px 0 10px 0; font-size:0.7rem; font-family:var(--font-tech); letter-spacing:2px;">Beleuchtungs-Matrix</div>
                       ${this._pickerHtml("alarmLights", "Alarm-Lichter")}
                       <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:15px;">
-                        <ha-text-field id="lightColor" label="HEX (#)"></ha-text-field>
-                        <ha-text-field id="lightBrightness" type="number" label="Helligkeit"></ha-text-field>
+                        <div class="cyber-input-group"><label>HEX (#)</label><input class="cyber-input" id="lightColor" placeholder="#ff0000"></div>
+                        <div class="cyber-input-group"><label>Helligkeit</label><input class="cyber-input" id="lightBrightness" type="number" placeholder="255"></div>
                       </div>
-                      <ha-text-field id="lightEffect" label="Effekt"></ha-text-field>
+                      <div class="cyber-input-group"><label>Effekt</label><input class="cyber-input" id="lightEffect" placeholder="none"></div>
                       <div style="display:flex; gap:15px; align-items:center; margin-top:15px;">
                         <ha-switch id="lightRestore"></ha-switch>
                         <div style="font-size:0.8rem; opacity:0.7;">Status wiederherstellen</div>
