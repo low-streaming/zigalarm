@@ -1,5 +1,5 @@
 /**
- * ZigAlarm Infinity Card Editor V2.1
+ * ZigAlarm Infinity Card Editor V1.0.0
  * Architect Panel // Deutsche Version
  */
 

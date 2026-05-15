@@ -1,5 +1,5 @@
 /**
- * ZigAlarm Infinity Panel V2.6
+ * ZigAlarm Infinity Panel V1.0.0
  * Premium Security Management Interface
  * Deutsche Version // Infinity Edition // Manual Mapping Tool // Full Aesthetic Restore
  */
