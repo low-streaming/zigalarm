@@ -43,6 +43,10 @@ PANEL_URL_PATH = "zigalarm-panel"
 STATIC_URL = "/zigalarm_static"
 STATIC_DIR = Path(__file__).resolve().parent / "frontend"
 
+# www/ für HACS-Lovelace-Karten (zigalarm-card.js, zigalarm-card-editor.js)
+WWW_URL = "/zigalarm_www"
+WWW_DIR = Path(__file__).resolve().parent.parent.parent / "www"
+
 
 def _uniq_list(value: Any) -> list[str]:
     out: list[str] = []
@@ -57,24 +61,32 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN].setdefault("entity_to_entry", {})
 
-    # ✅ Static files MUST be awaited
+    # ✅ Panel-JS aus frontend/ registrieren
     if STATIC_DIR.exists():
         await hass.http.async_register_static_paths(
             [StaticPathConfig(STATIC_URL, str(STATIC_DIR), cache_headers=False)]
         )
+
+    # ✅ Lovelace-Karten aus www/ registrieren
+    www_dir = Path(hass.config.path("www"))
+    if www_dir.exists():
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(WWW_URL, str(www_dir), cache_headers=False)]
+        )
     
-    # ✅ Read version from manifest for cache busting
+    # ✅ Read version from manifest for cache busting (async-safe)
     version = "1.0.0"
     manifest_path = Path(__file__).parent / "manifest.json"
     if manifest_path.exists():
         try:
-            with open(manifest_path) as f:
-                version = json.load(f).get("version", "1.0.0")
+            def _read_version():
+                with open(manifest_path) as f:
+                    return json.load(f).get("version", "1.0.0")
+            version = await hass.async_add_executor_job(_read_version)
         except Exception:
             pass
 
-    # ✅ Panel register MUST be awaited
-    #    (API unterscheidet sich je nach HA-Version)
+    # ✅ Panel registrieren
     try:
         await panel_custom.async_register_panel(
             hass,
@@ -95,6 +107,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             sidebar_icon="mdi:shield-home",
             require_admin=False,
         )
+
+    # ✅ ZigAlarm-Karten als Lovelace-Resources registrieren
+    from homeassistant.components.frontend import add_extra_js_url
+    add_extra_js_url(hass, f"/local/zigalarm-card-editor.js?v={version}")
+    add_extra_js_url(hass, f"/local/zigalarm-card.js?v={version}")
 
     async def handle_set_config(call: ServiceCall) -> None:
         data = dict(call.data or {})

@@ -227,3 +227,13 @@ class ZigAlarmCard extends HTMLElement {
 }
 
 customElements.define("zigalarm-card", ZigAlarmCard);
+
+window.customCards = window.customCards || [];
+if (!window.customCards.find(c => c.type === "zigalarm-card")) {
+  window.customCards.push({
+    type: "zigalarm-card",
+    name: "ZigAlarm Infinity Card",
+    preview: true,
+    description: "High-End Alarmanlagen-Steuerung im OpenKairo Design.",
+  });
+}

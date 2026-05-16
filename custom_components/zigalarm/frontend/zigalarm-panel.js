@@ -1,5 +1,5 @@
 /**
- * ZigAlarm Infinity Panel V1.0.1
+ * ZigAlarm Infinity Panel V1.0.2
  * Premium Security Management Interface
  * Deutsche Version // Infinity Edition // Manual Mapping Tool // Full Aesthetic Restore
  */
@@ -61,12 +61,27 @@ class ZigAlarmPanel extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    this._update();
+    if (this._root?.innerHTML) this._update();
+    else { this._render(); this._update(); }
   }
 
   connectedCallback() {
     this._render();
-    this._setHint("SYSTEM INITIALISIERUNG…");
+    if (this._hass) {
+      this._update();
+    } else {
+      // Warte auf hass – max. 5 Sekunden (10 x 500ms)
+      let tries = 0;
+      const wait = setInterval(() => {
+        if (this._hass) {
+          clearInterval(wait);
+          this._update();
+        } else if (++tries > 10) {
+          clearInterval(wait);
+          this._setHint("WARNUNG: Home Assistant nicht erreichbar");
+        }
+      }, 500);
+    }
   }
 
   _$(id) { return this._root?.getElementById?.(id); }
@@ -86,12 +101,20 @@ class ZigAlarmPanel extends HTMLElement {
     return st?.attributes?.friendly_name || eid;
   }
 
+  _injectFonts() {
+    if (document.getElementById('za-fonts')) return;
+    const link = document.createElement('link');
+    link.id = 'za-fonts';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Orbitron:wght@400;900&family=JetBrains+Mono:wght@400;700&display=swap';
+    document.head.appendChild(link);
+  }
+
   _render() {
+    this._injectFonts();
 
     this._root.innerHTML = `
       <style>
-
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Orbitron:wght@400;900&family=JetBrains+Mono:wght@400;700&display=swap');
 
         :host {
           display: block;
@@ -429,7 +452,7 @@ class ZigAlarmPanel extends HTMLElement {
             <div class="grid2">
               <div class="card" style="text-align:center; padding:60px 40px;">
                 <h1 class="brand" style="justify-content:center; font-size:3rem; margin-bottom:10px;">ZIG<span>ALARM</span></h1>
-                <div style="font-family:var(--font-tech); letter-spacing:8px; font-weight:900; color:var(--za-primary); font-size:0.9rem;">INFINITY OS // V1.0.1</div>
+                <div style="font-family:var(--font-tech); letter-spacing:8px; font-weight:900; color:var(--za-primary); font-size:0.9rem;">INFINITY OS // V1.0.3</div>
                 
                 <div style="margin-top:40px; padding:30px; background:rgba(0,0,0,0.3); border-radius:25px; border:1px solid var(--za-glass-border); text-align:left;">
                   <div class="secTitle" style="margin-bottom:20px; font-size:0.8rem;">Kern-Spezifikationen</div>
@@ -553,14 +576,12 @@ class ZigAlarmPanel extends HTMLElement {
        callback: (eid) => { if (!this._sensorMappings[this._mapTarget]) this._sensorMappings[this._mapTarget] = {}; this._sensorMappings[this._mapTarget].lqi = eid; this._renderMapModal(); this._setDirty(); }
     });
 
-    setTimeout(() => {
-      ["exitDelay", "entryDelay", "triggerTime", "lightColor", "lightBrightness", "lightEffect"].forEach(id => {
-        const el = this._$(id); if (el) el.onchange = () => this._setDirty();
-      });
-      ["forceArm", "lightRestore", "camOnlyTrig"].forEach(id => {
-        const el = this._$(id); if (el) el.onchange = () => this._setDirty();
-      });
-    }, 1000);
+    ["exitDelay", "entryDelay", "triggerTime", "lightColor", "lightBrightness", "lightEffect"].forEach(id => {
+      const el = this._$(id); if (el) el.onchange = () => this._setDirty();
+    });
+    ["forceArm", "lightRestore", "camOnlyTrig"].forEach(id => {
+      const el = this._$(id); if (el) el.onchange = () => this._setDirty();
+    });
   }
 
   _pickerHtml(key, title) { return `<div style="margin-bottom:25px;"><div style="font-size:0.7rem; font-family:var(--font-tech); letter-spacing:2px; opacity:0.4; margin-bottom:12px;">${title}</div><button class="pickBtn" id="${key}Pick">KNOTEN ZUWEISEN...</button><div class="chips" id="${key}Chips"></div></div>`; }
@@ -632,15 +653,30 @@ class ZigAlarmPanel extends HTMLElement {
 
   _update() {
     if (!this._hass || !this._root) return;
+    
+    // Simple throttle
+    const now = Date.now();
+    if (this._lastUpdate && now - this._lastUpdate < 100) return;
+    this._lastUpdate = now;
+
     this._updateAlarmSelect();
     const sel = this._getSelectedAlarmEntity();
-    const st = sel ? this._hass.states[sel] : null;
-    if (!st) return;
+    if (!sel) {
+      this._setHint("SUCHE ALARM-KNOTEN…");
+      return;
+    }
+    const st = this._hass.states[sel];
+    if (!st) {
+      this._setHint(`KNOTEN ${sel} NICHT GEFUNDEN…`);
+      return;
+    }
+    
     const a = st.attributes || {};
     this._sensorMappings = a.sensor_mappings || {};
     this._$("statePill").textContent = stateToDE(st.state);
     this._$("statePill").setAttribute("data-state", st.state);
     this._$("statusLine").textContent = `VERBUNDEN MIT ${sel.toUpperCase()}`;
+    this._setHint("SYSTEM ONLINE");
     
     ["perimeter", "motion", "always", "alarmLights", "cams"].forEach(k => {
        const attr = k === "alarmLights" ? "alarm_lights" : k === "cams" ? "camera_entities" : `${k}_sensors`;
