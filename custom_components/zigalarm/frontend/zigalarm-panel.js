@@ -61,27 +61,17 @@ class ZigAlarmPanel extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    if (this._root?.innerHTML) this._update();
-    else { this._render(); this._update(); }
+    if (!this._rendered) {
+      this._render();
+    }
+    this._update();
   }
 
   connectedCallback() {
-    this._render();
-    if (this._hass) {
-      this._update();
-    } else {
-      // Warte auf hass – max. 5 Sekunden (10 x 500ms)
-      let tries = 0;
-      const wait = setInterval(() => {
-        if (this._hass) {
-          clearInterval(wait);
-          this._update();
-        } else if (++tries > 10) {
-          clearInterval(wait);
-          this._setHint("WARNUNG: Home Assistant nicht erreichbar");
-        }
-      }, 500);
+    if (!this._rendered) {
+      this._render();
     }
+    if (this._hass) this._update();
   }
 
   _$(id) { return this._root?.getElementById?.(id); }
@@ -111,6 +101,8 @@ class ZigAlarmPanel extends HTMLElement {
   }
 
   _render() {
+    if (this._rendered) return;
+    this._rendered = true;
     this._injectFonts();
 
     this._root.innerHTML = `
