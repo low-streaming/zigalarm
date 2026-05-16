@@ -39,13 +39,10 @@ from .const import (
     DEFAULT_CAMERA_SHOW_ONLY_TRIGGERED,
 )
 
+# ✅ Pfade für Panel und Karten (liegen alle in frontend/)
 PANEL_URL_PATH = "zigalarm-panel"
 STATIC_URL = "/zigalarm_static"
 STATIC_DIR = Path(__file__).resolve().parent / "frontend"
-
-# www/ für HACS-Lovelace-Karten (zigalarm-card.js, zigalarm-card-editor.js)
-WWW_URL = "/zigalarm_www"
-WWW_DIR = Path(__file__).resolve().parent.parent.parent / "www"
 
 
 def _uniq_list(value: Any) -> list[str]:
@@ -61,20 +58,13 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN].setdefault("entity_to_entry", {})
 
-    # ✅ Panel-JS aus frontend/ registrieren
+    # ✅ Statische Dateien (Panel + Karten) registrieren
     if STATIC_DIR.exists():
         await hass.http.async_register_static_paths(
             [StaticPathConfig(STATIC_URL, str(STATIC_DIR), cache_headers=False)]
         )
-
-    # ✅ Lovelace-Karten aus www/ registrieren
-    www_dir = Path(hass.config.path("www"))
-    if www_dir.exists():
-        await hass.http.async_register_static_paths(
-            [StaticPathConfig(WWW_URL, str(www_dir), cache_headers=False)]
-        )
     
-    # ✅ Read version from manifest for cache busting (async-safe)
+    # ✅ Version für Cache-Busting laden (async-safe)
     version = "1.0.0"
     manifest_path = Path(__file__).parent / "manifest.json"
     if manifest_path.exists():
@@ -110,8 +100,8 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     # ✅ ZigAlarm-Karten als Lovelace-Resources registrieren
     from homeassistant.components.frontend import add_extra_js_url
-    add_extra_js_url(hass, f"/local/zigalarm-card-editor.js?v={version}")
-    add_extra_js_url(hass, f"/local/zigalarm-card.js?v={version}")
+    add_extra_js_url(hass, f"{STATIC_URL}/zigalarm-card-editor.js?v={version}")
+    add_extra_js_url(hass, f"{STATIC_URL}/zigalarm-card.js?v={version}")
 
     async def handle_set_config(call: ServiceCall) -> None:
         data = dict(call.data or {})
