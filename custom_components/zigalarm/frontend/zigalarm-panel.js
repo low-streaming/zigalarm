@@ -91,6 +91,8 @@ class ZigAlarmPanel extends HTMLElement {
     this._root.innerHTML = `
       <style>
 
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Orbitron:wght@400;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
         :host {
           display: block;
           height: 100vh;
@@ -759,7 +761,12 @@ class ZigAlarmPanel extends HTMLElement {
 
   async _save() {
     const eid = this._getSelectedAlarmEntity();
-    const st = this._hass.states[eid];
+    const st = eid ? this._hass.states[eid] : null;
+
+    if (!eid || !st) {
+      this._setHint("FEHLER: KEIN KNOTEN GEWÄHLT ❌");
+      return;
+    }
     const data = {
       config_entry_id: st?.attributes?.config_entry_id || "",
       alarm_entity: eid,
@@ -824,9 +831,11 @@ class ZigAlarmPanel extends HTMLElement {
   _getSelectedAlarmEntity() { return this._$("alarmEntitySel")?.value; }
   _updateAlarmSelect() {
      const sel = this._$("alarmEntitySel"); if (!sel) return;
-     const list = Object.keys(this._hass.states).filter(e => e.startsWith("alarm_control_panel.")).sort();
-     if (sel.options.length === list.length) return;
-     sel.innerHTML = list.map(e => `<option value="${e}">${e.toUpperCase()}</option>`).join("");
+     const all = Object.keys(this._hass.states).filter(e => e.startsWith("alarm_control_panel."));
+     const list = all.filter(e => this._hass.states[e].attributes.config_entry_id).sort();
+     const final = list.length ? list : all.sort();
+     if (sel.options.length === final.length) return;
+     sel.innerHTML = final.map(e => `<option value="${e}">${e.toUpperCase()}${this._hass.states[e].attributes.config_entry_id ? " ✅" : ""}</option>`).join("");
   }
 
   _exportConfig() { const area = this._$("configJson"); if (area) { area.value = JSON.stringify({ perimeter: this._panelSelections.perimeter, motion: this._panelSelections.motion, always: this._panelSelections.always, siren: this._panelSelections.siren, alarmLights: this._panelSelections.alarmLights, cams: this._panelSelections.cams, sensor_mappings: this._sensorMappings }, null, 2); area.style.display = 'block'; } }
