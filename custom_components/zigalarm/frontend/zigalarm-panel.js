@@ -153,6 +153,24 @@ class ZigAlarmPanel extends HTMLElement {
         .brand svg { width: 35px; height: 35px; color: var(--za-primary); filter: drop-shadow(0 0 10px var(--za-primary)); }
         .brand span { color: var(--za-primary); }
 
+        .back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 18px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.05);
+          color: #fff;
+          font-family: var(--font-tech);
+          font-weight: 800;
+          cursor: pointer;
+          transition: 0.3s;
+          text-transform: uppercase;
+        }
+        .back-btn:hover { background: rgba(14, 165, 233, 0.12); border-color: var(--za-primary); }
+        .back-btn ha-icon { --mdc-icon-size: 20px; }
+
         .nav-tabs { display: flex; gap: 15px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 20px; border: 1px solid var(--za-glass-border); }
         .nav-item {
           padding: 12px 28px; border-radius: 14px; color: rgba(255,255,255,0.4); font-weight: 800; font-size: 0.8rem;
@@ -320,6 +338,7 @@ class ZigAlarmPanel extends HTMLElement {
           .save-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 15px; background: rgba(8, 8, 10, 0.98); backdrop-filter: blur(15px); border-top: 1px solid var(--za-glass-border); z-index: 1000; }
           .btn-prime { width: 100%; padding: 15px; font-size: 0.9rem; letter-spacing: 2px; border-radius: 15px; }
           .modal { width: 98%; margin: 2px; border-radius: 20px; }
+          .back-btn span { display: none; }
           .modalBody { padding: 20px; }
           .pickBtn { padding: 10px 15px; font-size: 0.7rem; border-radius: 12px; margin-bottom: 8px; min-height: auto; }
           .chip { padding: 4px 8px; font-size: 0.65rem; border-radius: 8px; }
@@ -333,9 +352,12 @@ class ZigAlarmPanel extends HTMLElement {
         <div class="scanline"></div>
 
         <div class="navbar">
-          <div class="brand">
-            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            <div>ZIG<span>ALARM</span></div>
+          <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
+            <button class="back-btn" id="btnBack"><ha-icon icon="mdi:arrow-left"></ha-icon><span>Zurück</span></button>
+            <div class="brand">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              <div>ZIG<span>ALARM</span></div>
+            </div>
           </div>
           <div class="nav-tabs">
             <button class="nav-item active" id="nav-dashboard">ÜBERSICHT</button>
@@ -528,6 +550,7 @@ class ZigAlarmPanel extends HTMLElement {
     this._$("nav-dashboard").classList.add("active");
 
     this._$("alarmEntitySel").onchange = () => { this._panelSelections = {}; this._update(); };
+    this._$("btnBack").onclick = () => this._goBack();
     this._$("save").onclick = () => this._save();
     this._$("btnHome").onclick = () => { this._beep(600, 0.1); this._arm("home"); };
     this._$("btnAway").onclick = () => { this._beep(600, 0.1); this._arm("away"); };
@@ -574,6 +597,14 @@ class ZigAlarmPanel extends HTMLElement {
     ["forceArm", "lightRestore", "camOnlyTrig"].forEach(id => {
       const el = this._$(id); if (el) el.onchange = () => this._setDirty();
     });
+  }
+
+  _goBack() {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = '/';
+    }
   }
 
   _pickerHtml(key, title) { return `<div style="margin-bottom:25px;"><div style="font-size:0.7rem; font-family:var(--font-tech); letter-spacing:2px; opacity:0.4; margin-bottom:12px;">${title}</div><button class="pickBtn" id="${key}Pick">KNOTEN ZUWEISEN...</button><div class="chips" id="${key}Chips"></div></div>`; }
